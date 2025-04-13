@@ -13,33 +13,45 @@ def create_grid_overlay(map_obj, sw_corner, ne_corner, grid_size):
         [lat, lng] of southwest corner
     ne_corner : list
         [lat, lng] of northeast corner
-    grid_size : float
+    grid_size : float or list
         Size of grid squares in degrees
+        Can be a single float (same size for lat/lng) or 
+        a list [lat_size, lng_size] for different sizes
     """
+    # Handle different grid size formats
+    if isinstance(grid_size, list) and len(grid_size) == 2:
+        # Separate sizes for latitude and longitude
+        lat_grid_size = grid_size[0]
+        lng_grid_size = grid_size[1]
+    else:
+        # Same size for both
+        lat_grid_size = grid_size
+        lng_grid_size = grid_size
+    
     # Calculate number of rows and columns in the grid
     lat_range = ne_corner[0] - sw_corner[0]
     lng_range = ne_corner[1] - sw_corner[1]
     
-    num_rows = int(lat_range / grid_size) + 1
-    num_cols = int(lng_range / grid_size) + 1
+    num_rows = int(lat_range / lat_grid_size)
+    num_cols = int(lng_range / lng_grid_size)
     
     # Create grid cell for each row and column
     for i in range(num_rows):
         for j in range(num_cols):
-            lat_sw = sw_corner[0] + i * grid_size
-            lng_sw = sw_corner[1] + j * grid_size
+            lat_sw = sw_corner[0] + i * lat_grid_size
+            lng_sw = sw_corner[1] + j * lng_grid_size
             
-            lat_ne = lat_sw + grid_size
-            lng_ne = lng_sw + grid_size
+            lat_ne = lat_sw + lat_grid_size
+            lng_ne = lng_sw + lng_grid_size
             
-            # Add rectangle for each grid cell with more visible styling
+            # Add rectangle for each grid cell with better styling
             folium.Rectangle(
                 bounds=[[lat_sw, lng_sw], [lat_ne, lng_ne]],
-                color='black',  # Changed from blue to black
-                weight=2,       # Increased from 1 to 2
-                fill=False,
-                opacity=0.8,    # Increased from 0.5 to 0.8
-                popup=f"Grid Cell ({i},{j})"
+                color='black',       # Black outline for better visibility
+                weight=1,            # Thinner lines to avoid cluttering
+                fill=False,          # No fill to see the map underneath
+                opacity=0.7,         # Slightly transparent
+                popup=f"Grid Cell ({i},{j})<br>ID: r{i}c{j}<br>SW: [{lat_sw:.6f}, {lng_sw:.6f}]<br>NE: [{lat_ne:.6f}, {lng_ne:.6f}]"
             ).add_to(map_obj)
 
 def create_boundary_drawing_map(center, zoom_start=12, predefined_locations=None):

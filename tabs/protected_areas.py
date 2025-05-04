@@ -3,6 +3,7 @@ import streamlit as st
 import folium
 from streamlit_folium import folium_static, st_folium
 import json
+import re
 from datetime import datetime
 from folium.plugins import Draw
 
@@ -15,6 +16,15 @@ def protected_areas_tab():
     """
     st.header("Protected Areas")
     
+    # Check if location has been selected first
+    if not st.session_state.location_selected:
+        st.warning("Please select a location in the initial screen first.")
+        if st.button("Return to Location Selection"):
+            st.session_state.location_selected = False
+            st.rerun()
+        return
+    
+    # Then check if an area of interest has been selected
     if not st.session_state.area_selected:
         st.warning("Please select an area of interest in the Map & Selection tab first.")
         return
@@ -41,7 +51,13 @@ def protected_areas_tab():
                 for i, area in enumerate(st.session_state.protected_areas):
                     col1, col2 = st.columns([4, 1])
                     with col1:
-                        st.write(f"**Area {i+1}:** {len(area['points'])} points")
+                        # Show only unique points count (not duplicate first point)
+                        unique_points = len(area['points'])
+                        st.write(f"**{area['name']}:** {unique_points} points")
+                        # Add expander to show coordinates
+                        with st.expander("View Coordinates"):
+                            for j, point in enumerate(area['points']):
+                                st.write(f"Point {j+1}: [{point[0]:.6f}, {point[1]:.6f}]")
                     with col2:
                         # Add a remove button for each area
                         if st.button("🗑️", key=f"remove_area_{i}"):
@@ -56,26 +72,29 @@ def protected_areas_tab():
                 
                 # Create the GeoJSON data
                 geojson_data = {
-                    "type": "FeatureCollection",
+                    "type": "Coverage Area Collection",
                     "features": []
                 }
                 
                 for area in st.session_state.protected_areas:
                     # Convert points from [lat, lng] to [lng, lat] for GeoJSON
+                    # Use only the unique points drawn by the user
                     coordinates = [[point[1], point[0]] for point in area['points']]
-                    # Close the polygon by adding the first point at the end if needed
-                    if coordinates[0] != coordinates[-1]:
-                        coordinates.append(coordinates[0])
+                    
+                    # For GeoJSON format, we need to close the polygon, but only for export
+                    coordinates_closed = coordinates.copy()
+                    if coordinates_closed[0] != coordinates_closed[-1]:
+                        coordinates_closed.append(coordinates_closed[0])
                     
                     feature = {
                         "type": "Feature",
                         "properties": {
-                            "name": area.get('name', f"Protected Area {len(geojson_data['features'])+1}"),
-                            "timestamp": area.get('timestamp', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                            "name": area.get('name', "Unnamed Area"),
+                            "point_count": len(area['points'])  # Store actual unique point count
                         },
                         "geometry": {
                             "type": "Polygon",
-                            "coordinates": [coordinates]
+                            "coordinates": [coordinates_closed]  # Use closed version only for GeoJSON
                         }
                     }
                     geojson_data["features"].append(feature)
@@ -103,8 +122,9 @@ def protected_areas_tab():
             **Instructions:**
             1. Click the polygon tool in the top right corner of the map
             2. Draw a polygon within the red highlighted area
-            3. Click "Set Protected Areas" after drawing EACH polygon
-            4. Export the areas when finished
+            3. Enter a unique name (cannot start with a number)
+            4. Click "Set Protected Areas" after drawing EACH polygon
+            5. Export the areas when finished
             """)
     
     with map_col:
@@ -139,14 +159,20 @@ def protected_areas_tab():
         
         # Display all previously defined protected areas with green color
         for i, area in enumerate(st.session_state.protected_areas):
+            # We need to close the polygon for display, but not for storage
+            display_points = area['points'].copy()
+            if display_points[0] != display_points[-1]:
+                display_points.append(display_points[0])
+                
             folium.Polygon(
-                locations=area['points'],
+                locations=display_points,
                 color='green',
                 weight=2,
                 fill=True,
                 fill_color='green',
                 fill_opacity=0.3,
-                popup=f"Protected Area {i+1}"
+                tooltip=area['name'],  # Add tooltip to show area name on hover
+                popup=f"{area['name']}: {len(area['points'])} points"
             ).add_to(m)
             
         # Display all sensors from the sensor placement tab with blue markers
@@ -193,9 +219,11 @@ def protected_areas_tab():
             <h4 style="margin-top: 0;">Protected Area Instructions:</h4>
             <ul style="padding-left: 20px; margin-bottom: 0;">
                 <li>Click the polygon tool in the top right corner</li>
-                <li>Draw a polygon to define a protected area</li>
+                <li>Draw a polygon (4 points) to define a protected area</li>
+                <li>Enter a unique name (cannot start with a number)</li>
                 <li>Click "Set Protected Areas" after EACH polygon</li>
                 <li>Draw multiple polygons for separate protected areas</li>
+                <li>Hover over polygons to see their names</li>
                 <li>Use the Export button to save all protected areas</li>
             </ul>
             <p style="color: red; font-weight: bold; margin-top: 5px; margin-bottom: 0;">
@@ -220,13 +248,46 @@ def protected_areas_tab():
         if 'protected_area_map_data' not in st.session_state:
             st.session_state.protected_area_map_data = None
         
-        # Automatically generate area name - no user input required
+        # Initialize and manage the area name input
+        if 'should_clear_name' not in st.session_state:
+            st.session_state.should_clear_name = False
+        
+        # Generate a unique key for the text input that changes when we want to clear it
+        if 'name_input_key' not in st.session_state:
+            st.session_state.name_input_key = 0
+        
+        # When we want to clear, we'll increment this key
+        input_key = f"protected_area_name_input_{st.session_state.name_input_key}"
+        
+        # Add an input field for the area name
+        area_name = st.text_input("Enter Protected Area Name:", 
+                                key=input_key,
+                                placeholder="Name cannot start with a number and must be unique")
         
         # Button to set drawn protected areas
         if st.button("Set Protected Areas", key="set_protected_areas_button"):
-            if (st.session_state.protected_area_map_data and 
-                'all_drawings' in st.session_state.protected_area_map_data and 
-                st.session_state.protected_area_map_data['all_drawings']):
+            # Validate the name first
+            valid_name = True
+            error_message = ""
+            
+            # Check if name is provided
+            if not area_name:
+                valid_name = False
+                error_message = "Please enter a name for the protected area."
+            # Check if name starts with a number
+            elif re.match(r'^\d', area_name):
+                valid_name = False
+                error_message = "Protected area name cannot start with a number."
+            # Check for duplicate names
+            elif any(area['name'] == area_name for area in st.session_state.protected_areas):
+                valid_name = False
+                error_message = f"The name '{area_name}' is already in use. Please choose a unique name."
+            
+            if not valid_name:
+                st.error(error_message)
+            elif (st.session_state.protected_area_map_data and 
+                  'all_drawings' in st.session_state.protected_area_map_data and 
+                  st.session_state.protected_area_map_data['all_drawings']):
                 
                 new_areas = []
                 invalid_areas = 0
@@ -239,8 +300,15 @@ def protected_areas_tab():
                         # For polygons, coordinates are in the format [[[lng1, lat1], [lng2, lat2], ...]]
                         if coords and coords[0]:
                             # Convert [lng, lat] to [lat, lng] format for our application
+                            # Remove the duplicated first point if it exists (last == first)
                             points = []
-                            for coord in coords[0]:
+                            raw_points = coords[0]
+                            # Check if the last point is a duplicate of the first point
+                            if raw_points[0][0] == raw_points[-1][0] and raw_points[0][1] == raw_points[-1][1]:
+                                # Remove the last point as it's a duplicate
+                                raw_points = raw_points[:-1]
+                                
+                            for coord in raw_points:
                                 points.append([coord[1], coord[0]])
                             
                             # Check if ALL points of the polygon are inside the selected area
@@ -263,11 +331,11 @@ def protected_areas_tab():
                                         break
                             
                             if is_valid:
-                                # Create a new protected area with automatic numbering
+                                # Create a new protected area with the user provided name
                                 new_area = {
-                                    'points': points,
+                                    'points': points,  # Only store unique points
                                     'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                    'name': f"Protected Area {len(st.session_state.protected_areas) + 1}"
+                                    'name': area_name
                                 }
                                 new_areas.append(new_area)
                             else:
@@ -280,10 +348,13 @@ def protected_areas_tab():
                     if invalid_areas > 0:
                         st.warning(f"Added {len(new_areas)} new protected area(s). {invalid_areas} area(s) had points outside the selected region and were ignored.")
                     else:
-                        st.success(f"Added {len(new_areas)} new protected area(s)!")
+                        st.success(f"Added '{area_name}' as a new protected area with {len(new_areas[0]['points'])} unique points!")
                     
                     # Clear the map_data after adding areas to allow for new areas to be drawn
                     st.session_state.protected_area_map_data = None
+                    
+                    # Increment the key to force a new text input with an empty value
+                    st.session_state.name_input_key += 1
                     
                     st.rerun()
                 else:

@@ -1,0 +1,333 @@
+{
+    "sensors": [
+      {
+        "sensor_type": "Radar",
+        "parameters": [
+          {
+            "model": "IRIS 3D Drone Radar",
+            "manufacturer": "Robin Radar Systems",
+            "detection_range": 5000,
+            "response_time": 0.25,
+            "price_per_unit": 75000,
+            "description": "High-performance 3D radar system with 360° coverage, excellent for long-range detection and tracking in complex environments. Features micro-doppler classification to distinguish between drones and birds.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 90,
+              "frequency_band": "X-band",
+              "classification_capability": "Micro-Doppler",
+              "weight": 29,
+              "power_consumption": 150,
+              "environmental_rating": "IP65",
+              "operating_temperature": "-40 to 60"
+            }
+          },
+          {
+            "model": "ULAB-D1",
+            "manufacturer": "Ainstein",
+            "detection_range": 5000,
+            "response_time": 0.5,
+            "price_per_unit": 65000,
+            "description": "Ultra long-range airborne radar optimized for air-to-air detection and BVLOS operations. Offers customizable integration for aerial vehicle manufacturers with digital beam forming for precise 3D detection.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 60,
+              "frequency_band": "K-band",
+              "classification_capability": "Digital Beam Forming",
+              "weight": 3.5,
+              "power_consumption": 25,
+              "environmental_rating": "IP67",
+              "operating_temperature": "-30 to 55"
+            }
+          },
+          {
+            "model": "XENTA-C CUAS Radar",
+            "manufacturer": "Weibel",
+            "detection_range": 10000,
+            "response_time": 0.3,
+            "price_per_unit": 120000,
+            "description": "Advanced X-Band counter-UAV radar with exceptional long-range capabilities up to 10km. Specially designed for detecting, tracking, and classifying small, low-flying targets using FMCW radar technology.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 90,
+              "frequency_band": "X-band FMCW",
+              "classification_capability": "3D Digital Array",
+              "weight": 35,
+              "power_consumption": 200,
+              "environmental_rating": "IP66",
+              "operating_temperature": "-40 to 65"
+            }
+          },
+          {
+            "model": "DroneWatcher DSR",
+            "manufacturer": "DeTect",
+            "detection_range": 3500,
+            "response_time": 0.2,
+            "price_per_unit": 48000,
+            "description": "Specialized drone surveillance radar that can detect cooperative and non-cooperative drones at ranges up to 3.5km. Features automatic classification to reduce false positives from birds and other small airborne objects.",
+            "sensor_specifications": {
+              "azimuth_coverage": 120,
+              "elevation_coverage": 60,
+              "frequency_band": "S-band Doppler",
+              "classification_capability": "Solid State Processing",
+              "weight": 18,
+              "power_consumption": 95,
+              "environmental_rating": "IP65",
+              "operating_temperature": "-20 to 50"
+            }
+          },
+          {
+            "model": "T.Radar ER",
+            "manufacturer": "Tron Future",
+            "detection_range": 6000,
+            "response_time": 0.1,
+            "price_per_unit": 85000,
+            "description": "Military-grade 4D AESA pulse-Doppler radar with advanced GaN amplifiers for detecting low-RCS targets. Uses kinematic tracking algorithms to identify multi-rotor drones through flight pattern analysis.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 90,
+              "frequency_band": "Pulse-Doppler AESA",
+              "classification_capability": "Kinematic Tracking",
+              "weight": 25,
+              "power_consumption": 180,
+              "environmental_rating": "IP67",
+              "operating_temperature": "-40 to 70"
+            }
+          }
+        ]
+      },
+      {
+        "sensor_type": "RF",
+        "parameters": [
+          {
+            "model": "RF-360",
+            "manufacturer": "Dedrone",
+            "detection_range": 5000,
+            "response_time": 1.2,
+            "price_per_unit": 25000,
+            "description": "Passive radio frequency sensor with long-range detection capabilities up to 5km. Provides RF-based localization that can find both drones and their pilots, plotting them on a map in real-time.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 90,
+              "frequency_range": "400 MHz - 6 GHz",
+              "classification_capability": "Signal Analysis",
+              "weight": 4.2,
+              "power_consumption": 15,
+              "environmental_rating": "IP65",
+              "operating_temperature": "-20 to 60"
+            }
+          },
+          {
+            "model": "RfOne Mk2",
+            "manufacturer": "DroneShield",
+            "detection_range": 3000,
+            "response_time": 0.8,
+            "price_per_unit": 18000,
+            "description": "Non-emitting RF detection system with direction-finding capabilities. Multiple sensors can be networked for triangulation, ideal for large sites requiring early detection of drone threats.",
+            "sensor_specifications": {
+              "azimuth_coverage": 90,
+              "elevation_coverage": 60,
+              "frequency_range": "2.4 GHz - 5.8 GHz",
+              "classification_capability": "Protocol Analysis",
+              "weight": 3.8,
+              "power_consumption": 12,
+              "environmental_rating": "IP66",
+              "operating_temperature": "-30 to 55"
+            }
+          },
+          {
+            "model": "RF-300",
+            "manufacturer": "Dedrone",
+            "detection_range": 1600,
+            "response_time": 0.9,
+            "price_per_unit": 15000,
+            "description": "Compact RF sensor for detection, classification, and direction finding of drones and their remote controls. Uses multiple integrated software-defined radios to detect consumer, commercial, and hobbyist drones.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 60,
+              "frequency_range": "2.4 GHz - 5.8 GHz",
+              "classification_capability": "Software-defined Radio",
+              "weight": 4.5,
+              "power_consumption": 18,
+              "environmental_rating": "IP65",
+              "operating_temperature": "-20 to 55"
+            }
+          },
+          {
+            "model": "CADENCE",
+            "manufacturer": "IXI Electronic Warfare",
+            "detection_range": 2500,
+            "response_time": 1.5,
+            "price_per_unit": 22000,
+            "description": "Versatile RF drone detection device with wide-spectrum monitoring capabilities. Designed for deployments across large geographic areas with multiple sensors for effective triangulation of drone threats.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 45,
+              "frequency_range": "400 MHz - 6 GHz",
+              "classification_capability": "Triangulation",
+              "weight": 5.2,
+              "power_consumption": 20,
+              "environmental_rating": "IP67",
+              "operating_temperature": "-25 to 60"
+            }
+          },
+          {
+            "model": "T.Sensor",
+            "manufacturer": "Tron Future",
+            "detection_range": 5000,
+            "response_time": 0.7,
+            "price_per_unit": 28000,
+            "description": "Advanced wideband RF detector with RemoteID decoding capabilities. Can detect pre-flight remote control signals to identify drone operators, covering 360° with an impressive 5km detection range.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 90,
+              "frequency_range": "400 MHz - 6 GHz",
+              "classification_capability": "RemoteID Decoding",
+              "weight": 3.2,
+              "power_consumption": 14,
+              "environmental_rating": "IP66",
+              "operating_temperature": "-30 to 65"
+            }
+          }
+        ]
+      },
+      {
+        "sensor_type": "LiDAR",
+        "parameters": [
+          {
+            "model": "L2 LiDAR",
+            "manufacturer": "DJI",
+            "detection_range": 450,
+            "response_time": 0.05,
+            "price_per_unit": 15000,
+            "description": "High-performance drone-mounted LiDAR with detection range of 250-450m and up to 5 returns per pulse. Excellent for penetrating dense foliage with high vertical (4cm) and horizontal (5cm) accuracy.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 73.6,
+              "points_per_second": 240000,
+              "accuracy_vertical": 4,
+              "accuracy_horizontal": 5,
+              "weight": 920,
+              "power_consumption": 30,
+              "environmental_rating": "IP54",
+              "operating_temperature": "-20 to 50"
+            }
+          },
+          {
+            "model": "mdLiDAR1000",
+            "manufacturer": "Microdrones",
+            "detection_range": 250,
+            "response_time": 0.1,
+            "price_per_unit": 35000,
+            "description": "Integrated drone LiDAR solution designed for quick production of high-quality 3D point clouds. Paired with robust md4-1000 UAV platform and provides up to 6cm accuracy in real-world conditions.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 85,
+              "points_per_second": 100000,
+              "accuracy_vertical": 6,
+              "accuracy_horizontal": 8,
+              "weight": 1200,
+              "power_consumption": 45,
+              "environmental_rating": "IP54",
+              "operating_temperature": "-10 to 45"
+            }
+          },
+          {
+            "model": "EchoONE",
+            "manufacturer": "Teledyne Geospatial",
+            "detection_range": 270,
+            "response_time": 0.08,
+            "price_per_unit": 42000,
+            "description": "Lightweight, NDAA-compliant LiDAR scanner for mid-sized UAVs including DJI Matrice series. Capable of up to eight returns per pulse and offers 1.5cm vertical accuracy at 120m altitude.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 80,
+              "points_per_second": 180000,
+              "accuracy_vertical": 1.5,
+              "accuracy_horizontal": 3,
+              "weight": 1200,
+              "power_consumption": 35,
+              "environmental_rating": "IP55",
+              "operating_temperature": "-20 to 55"
+            }
+          },
+          {
+            "model": "VU8",
+            "manufacturer": "Leddartech",
+            "detection_range": 215,
+            "response_time": 0.03,
+            "price_per_unit": 5000,
+            "description": "Lightweight (75g) LiDAR sensor with detection range up to 215m, ideal for small UAVs with limited payload capacity. Fast response time and low power consumption make it perfect for obstacle detection applications.",
+            "sensor_specifications": {
+              "azimuth_coverage": 100,
+              "elevation_coverage": 20,
+              "points_per_second": 50000,
+              "accuracy_vertical": 10,
+              "accuracy_horizontal": 12,
+              "weight": 75,
+              "power_consumption": 8,
+              "environmental_rating": "IP67",
+              "operating_temperature": "-40 to 85"
+            }
+          },
+          {
+            "model": "HDL-32E",
+            "manufacturer": "Velodyne",
+            "detection_range": 100,
+            "response_time": 0.1,
+            "price_per_unit": 30000,
+            "description": "Rugged 360° LiDAR sensor with 695,000 points per second capture capability. Though limited to 100m range, it offers exceptional detail and accuracy for terrain mapping and obstacle detection applications.",
+            "sensor_specifications": {
+              "azimuth_coverage": 360,
+              "elevation_coverage": 41.3,
+              "points_per_second": 695000,
+              "accuracy_vertical": 2,
+              "accuracy_horizontal": 2,
+              "weight": 2000,
+              "power_consumption": 12,
+              "environmental_rating": "IP67",
+              "operating_temperature": "-10 to 60"
+            }
+          }
+        ]
+      }
+    ],
+    "uav_specifications": [
+      {
+        "uav_type": "Fixed Wing",
+        "altitude_range": [100, 3000],
+        "speed_range": [15, 50],
+        "endurance": 120,
+        "payload_capacity": 2.5
+      },
+      {
+        "uav_type": "Quadcopter",
+        "altitude_range": [0, 500],
+        "speed_range": [0, 20],
+        "endurance": 35,
+        "payload_capacity": 1.0
+      },
+      {
+        "uav_type": "Hexacopter",
+        "altitude_range": [0, 600],
+        "speed_range": [0, 25],
+        "endurance": 45,
+        "payload_capacity": 2.0
+      },
+      {
+        "uav_type": "Octocopter",
+        "altitude_range": [0, 800],
+        "speed_range": [0, 30],
+        "endurance": 40,
+        "payload_capacity": 5.0
+      },
+      {
+        "uav_type": "VTOL",
+        "altitude_range": [0, 2000],
+        "speed_range": [0, 40],
+        "endurance": 90,
+        "payload_capacity": 3.0
+      }
+    ],
+    "data_schema_version": "1.0",
+    "last_updated": "2025-04-30"
+  }

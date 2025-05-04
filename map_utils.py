@@ -1,9 +1,54 @@
 import folium
 from folium.plugins import Draw
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
+
+def create_square_grid_overlay(map_obj, sw_corner, ne_corner, grid_size):
+    """
+    Create a grid overlay on the map with square-shaped cells
+    
+    Parameters:
+    -----------
+    map_obj : folium.Map
+        The map object to add the grid to
+    sw_corner : list
+        [lat, lng] of southwest corner
+    ne_corner : list
+        [lat, lng] of northeast corner
+    grid_size : float
+        Size of grid squares in degrees (same for both lat and lng to ensure squares)
+    """
+    # Calculate number of rows and columns in the grid
+    lat_range = ne_corner[0] - sw_corner[0]
+    lng_range = ne_corner[1] - sw_corner[1]
+    
+    num_rows = int(lat_range / grid_size)
+    num_cols = int(lng_range / grid_size)
+    
+    # Create grid cell for each row and column
+    for i in range(num_rows):
+        for j in range(num_cols):
+            lat_sw = sw_corner[0] + i * grid_size
+            lng_sw = sw_corner[1] + j * grid_size
+            
+            lat_ne = lat_sw + grid_size
+            lng_ne = lng_sw + grid_size
+            
+            # Add rectangle for each grid cell with better styling
+            folium.Rectangle(
+                bounds=[[lat_sw, lng_sw], [lat_ne, lng_ne]],
+                color='black',       # Black outline for better visibility
+                weight=1,            # Thinner lines to avoid cluttering
+                fill=False,          # No fill to see the map underneath
+                opacity=0.7,         # Slightly transparent
+                popup=f"Grid Cell ({i},{j})<br>ID: r{i}c{j}<br>SW: [{lat_sw:.6f}, {lng_sw:.6f}]<br>NE: [{lat_ne:.6f}, {lng_ne:.6f}]"
+            ).add_to(map_obj)
 
 def create_grid_overlay(map_obj, sw_corner, ne_corner, grid_size):
     """
     Create a grid overlay on the map based on specified corners and grid size
+    This function is kept for backward compatibility, but create_square_grid_overlay is preferred
+    for square grids
     
     Parameters:
     -----------
@@ -138,6 +183,16 @@ def create_boundary_drawing_map(center, zoom_start=12, predefined_locations=None
     instructions = folium.Element(instructions_html)
     m.get_root().html.add_child(instructions)
     
+    # If predefined locations provided, add them as markers
+    if predefined_locations:
+        for name, location in predefined_locations.items():
+            if "center" in location:
+                folium.Marker(
+                    location=location["center"],
+                    popup=name,
+                    tooltip=name
+                ).add_to(m)
+    
     return m
 
 def is_point_in_polygon(point, polygon):
@@ -168,3 +223,61 @@ def is_point_in_rectangle(point, sw_corner, ne_corner):
     """
     lat, lng = point
     return (sw_corner[0] <= lat <= ne_corner[0]) and (sw_corner[1] <= lng <= ne_corner[1])
+
+def geocode_location(location_name, user_agent="uav_sensor_app"):
+    """
+    Geocode a location name to coordinates
+    
+    Parameters:
+    -----------
+    location_name : str
+        Name of the location to geocode
+    user_agent : str
+        User agent string for the geocoder
+        
+    Returns:
+    --------
+    tuple or None
+        (latitude, longitude) if successful, None otherwise
+    """
+    try:
+        geolocator = Nominatim(user_agent=user_agent)
+        location = geolocator.geocode(location_name)
+        
+        if location:
+            return (location.latitude, location.longitude)
+        else:
+            return None
+    except (GeocoderTimedOut, GeocoderUnavailable):
+        # Handle geocoding errors gracefully
+        return None
+        
+def reverse_geocode(lat, lng, user_agent="uav_sensor_app"):
+    """
+    Convert coordinates to a location name
+    
+    Parameters:
+    -----------
+    lat : float
+        Latitude
+    lng : float
+        Longitude
+    user_agent : str
+        User agent string for the geocoder
+        
+    Returns:
+    --------
+    str or None
+        Location name if successful, None otherwise
+    """
+    try:
+        geolocator = Nominatim(user_agent=user_agent)
+        location = geolocator.reverse((lat, lng))
+        
+        if location:
+            return location.address
+        else:
+            return None
+    except (GeocoderTimedOut, GeocoderUnavailable):
+        # Handle geocoding errors gracefully
+        return None

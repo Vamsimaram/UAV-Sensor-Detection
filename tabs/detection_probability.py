@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 import io
 import base64
 from matplotlib.colors import LinearSegmentedColormap
+import zipfile
 
 # Import from map_utils
 from map_utils import is_point_in_rectangle, is_point_in_polygon
 
-def calculate_detection_probability(sensor_type, distance, sensor_specs, uav_altitude, uav_speed):
+def calculate_detection_probability(sensor_type, distance_km, sensor_specs, uav_altitude_km, uav_speed_kmh):
     """
     Calculate the probability of detection based on sensor type, distance, and UAV parameters
     
@@ -23,302 +24,565 @@ def calculate_detection_probability(sensor_type, distance, sensor_specs, uav_alt
     -----------
     sensor_type : str
         Type of sensor (Radar, RF, LiDAR)
-    distance : float
-        Distance from sensor to the grid cell center in meters
+    distance_km : float
+        Distance from sensor to the grid cell center in kilometers
     sensor_specs : dict
         Specifications of the sensor
-    uav_altitude : float
-        Altitude of the UAV in meters
-    uav_speed : float
-        Speed of the UAV in m/s
+    uav_altitude_km : float
+        Altitude of the UAV in kilometers
+    uav_speed_kmh : float
+        Speed of the UAV in km/h
         
     Returns:
     --------
     float : Probability of detection (0.0 to 1.0)
     """
-    # Get sensor detection range
-    max_range = sensor_specs.get("detection_range", 1000)
+    # Get sensor detection range - handle both km and m units
+    max_range_km = sensor_specs.get("detection_range", 10.0)
     
-    # Basic probability model - decreases with distance
+    # Check if detection_range is in meters (convert to km)
+    if max_range_km > 100:  # Assume values > 100 are in meters
+        max_range_km = max_range_km / 1000.0
+    
+    # print(f"DEBUG: Sensor {sensor_type}, Distance: {distance_km:.3f}km, Max Range: {max_range_km:.3f}km")
+    
     # If distance > max_range, probability is 0
-    if distance > max_range:
+    if distance_km > max_range_km:
+        # print(f"DEBUG: Distance {distance_km:.3f} > Range {max_range_km:.3f}, returning 0")
         return 0.0
     
-    # Base probability calculation
-    # Using a gaussian-like falloff model where probability is highest at the center
-    # and falls off with distance
-    base_prob = math.exp(-(distance / max_range)**2)
+    # Base probability calculation using exponential decay
+    base_prob = math.exp(-(distance_km / max_range_km)**2)
+    # print(f"DEBUG: Base probability: {base_prob:.3f}")
     
     # Apply sensor type specific modifiers
-    if sensor_type == "Radar":
-        # Radar performance is affected by altitude and speed (doppler effect)
-        # Higher altitudes might reduce effectiveness slightly
-        altitude_factor = 1.0 - 0.1 * (uav_altitude / 1000)  # Small decrease with altitude
-        
-        # Faster moving targets can be easier to detect with radar
-        speed_factor = 0.9 + 0.1 * min(uav_speed / 20, 1.0)  # Bonus for faster targets
-        
-        # RCS (Radar Cross Section) factor - simplified here
-        rcs_factor = 0.95  # Assuming standard drone RCS
+    if sensor_type.lower() == "radar":
+        # Radar performance factors
+        altitude_factor = max(0.3, 1.0 - 0.1 * (uav_altitude_km / 1.0))
+        speed_factor = min(1.2, 0.9 + 0.1 * min(uav_speed_kmh / 72, 1.0))
+        rcs_factor = 0.95
         
         final_prob = base_prob * altitude_factor * speed_factor * rcs_factor
     
-    elif sensor_type == "RF":
-        # RF detection depends on radio signals, less affected by altitude directly
-        # but signal strength decreases with distance
-        signal_factor = 1.0 - 0.3 * (distance / max_range)**1.5
-        
-        # RF signals can be affected by UAV speed indirectly
-        speed_factor = 1.0  # Neutral effect for RF
-        
-        # RF signals can be affected by UAV altitude
-        altitude_factor = 1.0 - 0.05 * (uav_altitude / 500)  # Slight decrease with altitude
+    elif sensor_type.lower() == "rf":
+        # RF detection factors
+        signal_factor = max(0.3, 1.0 - 0.3 * (distance_km / max_range_km)**1.5)
+        altitude_factor = max(0.3, 1.0 - 0.05 * (uav_altitude_km / 0.5))
+        speed_factor = 1.0
         
         final_prob = base_prob * signal_factor * speed_factor * altitude_factor
     
-    elif sensor_type == "LiDAR":
-        # LiDAR heavily affected by distance and has shorter range
-        range_factor = 1.0 - 0.5 * (distance / max_range)**1.2
-        
-        # LiDAR can be affected by UAV speed (faster = harder to get good returns)
-        speed_factor = 1.0 - 0.2 * min(uav_speed / 30, 1.0)  # Penalty for faster targets
-        
-        # LiDAR effectiveness decreases with altitude
-        altitude_factor = 1.0 - 0.2 * (uav_altitude / 300)  # Decrease with altitude
+    elif sensor_type.lower() == "lidar":
+        # LiDAR factors
+        range_factor = max(0.3, 1.0 - 0.5 * (distance_km / max_range_km)**1.2)
+        speed_factor = max(0.3, 1.0 - 0.2 * min(uav_speed_kmh / 108, 1.0))
+        altitude_factor = max(0.3, 1.0 - 0.2 * (uav_altitude_km / 0.3))
         
         final_prob = base_prob * range_factor * speed_factor * altitude_factor
     
     else:
-        # Default case
         final_prob = base_prob
     
-    # Add some randomness to simulate real-world variability
-    # Use a normal distribution with mean=final_prob and sigma=0.05
-    # But ensure result stays between 0 and 1
-    randomness = max(0, min(1, np.random.normal(0, 0.05) + final_prob))
+    # Add small random variation (reduce randomness for debugging)
+    randomness = max(0, min(1, np.random.normal(0, 0.02) + final_prob))
     
-    # Ensure probability is between 0 and 1
-    return max(0.0, min(1.0, randomness))
+    result = round(max(0.0, min(1.0, randomness)), 3)
+    # print(f"DEBUG: Final probability: {result}")
+    return result
 
-def preprocess_detection_probability(grid_data, sensor_locations, sensor_specifications, uav_specs):
+def process_sensor_specifications_from_json(sensor_data_json):
     """
-    Preprocess and calculate detection probabilities for each grid cell
+    Process sensor specifications from the nested JSON structure
     
     Parameters:
     -----------
-    grid_data : list
-        List of grid cells with coordinates
-    sensor_locations : list
-        List of sensor locations with coordinates and names
-    sensor_specifications : list
-        List of sensor specifications
-    uav_specs : dict
-        UAV altitude and speed
+    sensor_data_json : dict
+        The loaded sensor data JSON
         
     Returns:
     --------
-    dict : Grid probabilities with detection probabilities per cell and sensor
+    list : Flattened list of sensor specifications
+    """
+    processed_specs = []
+    
+    if 'sensors' in sensor_data_json:
+        for sensor_category in sensor_data_json['sensors']:
+            sensor_type = sensor_category.get('sensor_type', 'Unknown')
+            
+            for param in sensor_category.get('parameters', []):
+                # Create a flattened specification
+                spec = {
+                    'type': sensor_type,
+                    'model': param.get('model', 'Unknown'),
+                    'manufacturer': param.get('manufacturer', 'Unknown'),
+                    'detection_range': param.get('detection_range', 1.0),  # km
+                    'response_time': param.get('response_time', 1.0),
+                    'price_per_unit': param.get('price_per_unit', 50000),
+                    'description': param.get('description', ''),
+                    'sensor_specifications': param.get('sensor_specifications', {})
+                }
+                processed_specs.append(spec)
+    
+    # print(f"DEBUG: Processed {len(processed_specs)} sensor specifications")
+    # for spec in processed_specs:
+    #     print(f"DEBUG: {spec['type']} - {spec['model']} (range: {spec['detection_range']}km)")
+    
+    return processed_specs
+
+# FIXED: Updated preprocess_detection_probability function with unique sensor keys
+def preprocess_detection_probability(grid_data, sensor_locations, sensor_specifications, uav_specs):
+    """
+    Preprocess and calculate detection probabilities for each grid cell
+    FIXED: Uses unique keys for each sensor specification to prevent overwrites
     """
     results = {}
     
-    # Ensure we have both sensor locations and specs
     if not sensor_locations or not sensor_specifications:
+        # print("DEBUG: No sensor locations or specifications")
         return results
     
     # Extract UAV parameters
-    uav_altitude = uav_specs.get("altitude", 100)
-    uav_speed = uav_specs.get("speed", 10)
+    uav_altitude_km = uav_specs.get("altitude", 0.1)
+    uav_speed_kmh = uav_specs.get("speed", 36)
+    
+    # print(f"DEBUG: UAV specs - Altitude: {uav_altitude_km}km, Speed: {uav_speed_kmh}km/h")
+    # print(f"DEBUG: Processing {len(grid_data)} grid cells")
+    # print(f"DEBUG: Sensor locations: {len(sensor_locations)}")
+    # print(f"DEBUG: Sensor specifications: {len(sensor_specifications)}")
+    
+    # Debug sensor specifications
+    # for i, spec in enumerate(sensor_specifications):
+    #     print(f"DEBUG: Spec {i}: {spec.get('type', 'Unknown')} - {spec.get('model', 'Unknown')}")
     
     # Process each grid cell
     for grid_cell in grid_data:
         grid_id = grid_cell["grid_id"]
         cell_center = grid_cell["center"]  # [lat, lng]
         
-        # Initialize probabilities for this cell
-        cell_probs = {
+        cell_data = {
             "grid_id": grid_id,
             "center": cell_center,
-            "sensors": {},
-            "combined_probability": 0.0
+            "sensor_locations": {}
         }
         
-        # Calculate probabilities for each sensor
+        # Calculate probabilities for each sensor location
         for i, sensor in enumerate(sensor_locations):
-            # Get sensor position
             sensor_pos = [sensor["lat"], sensor["lng"]]
-            sensor_name = sensor.get("name", f"Sensor {i+1}")
+            sensor_name = sensor.get("name", f"Sensor_{i+1}")
             
-            # Check if we have specifications for this sensor
-            if i < len(sensor_specifications):
-                sensor_spec = sensor_specifications[i]
+            # Calculate distance using Haversine formula
+            lat1, lng1 = sensor_pos
+            lat2, lng2 = cell_center
+            
+            lat1_rad = math.radians(lat1)
+            lng1_rad = math.radians(lng1)
+            lat2_rad = math.radians(lat2)
+            lng2_rad = math.radians(lng2)
+            
+            earth_radius_km = 6371.0
+            dlat = lat2_rad - lat1_rad
+            dlng = lng2_rad - lng1_rad
+            a = math.sin(dlat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlng/2)**2
+            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+            distance_km = earth_radius_km * c
+            
+            sensor_location_data = {
+                "position": sensor_pos,
+                "distance": distance_km,
+                "sensor_types": {}
+            }
+            
+            # print(f"DEBUG: Grid {grid_id}, Sensor {sensor_name}, Distance: {distance_km:.3f}km")
+            
+            # FIXED: Calculate probabilities for each sensor specification with unique keys
+            for j, sensor_spec in enumerate(sensor_specifications):
                 sensor_type = sensor_spec.get("type", "Unknown")
+                model = sensor_spec.get("model", "Unknown")
+                manufacturer = sensor_spec.get("manufacturer", "Unknown")
                 
-                # Calculate distance between sensor and grid cell center
-                # Convert lat/lng to approximate meters (very simplified)
-                # 1 degree lat ≈ 111,000 meters, 1 degree lng ≈ 111,000 * cos(lat) meters
-                lat1, lng1 = sensor_pos
-                lat2, lng2 = cell_center
+                # print(f"DEBUG: Processing sensor type: {sensor_type}, model: {model}")
                 
-                # Convert to radians
-                lat1_rad = math.radians(lat1)
-                lng1_rad = math.radians(lng1)
-                lat2_rad = math.radians(lat2)
-                lng2_rad = math.radians(lng2)
-                
-                # Haversine formula for distance
-                earth_radius = 6371000  # Earth radius in meters
-                dlat = lat2_rad - lat1_rad
-                dlng = lng2_rad - lng1_rad
-                a = math.sin(dlat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlng/2)**2
-                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-                distance = earth_radius * c  # Distance in meters
-                
-                # Calculate probability for this sensor
+                # Calculate probability
                 prob = calculate_detection_probability(
                     sensor_type,
-                    distance,
+                    distance_km,
                     sensor_spec,
-                    uav_altitude,
-                    uav_speed
+                    uav_altitude_km,
+                    uav_speed_kmh
                 )
                 
-                # Store probability
-                cell_probs["sensors"][sensor_name] = {
+                # FIXED: Create unique key that combines type, model, and manufacturer
+                # This prevents different sensors from overwriting each other
+                unique_sensor_key = f"{sensor_type.lower().strip()}_{model.strip()}_{manufacturer.strip()}".replace(" ", "_").replace("-", "_").replace(".", "")
+                
+                # Also create simpler keys for backward compatibility and fallback matching
+                type_key = sensor_type.strip().lower()
+                model_key = f"{type_key}_{model.strip().replace(' ', '_').replace('-', '_').replace('.', '')}"
+                
+                # Store the data with all relevant information
+                sensor_data = {
                     "probability": prob,
-                    "distance": distance,
-                    "type": sensor_type
+                    "model": model,
+                    "manufacturer": manufacturer,
+                    "original_type": sensor_type,
+                    "spec_index": j,  # Track which specification this is
+                    "unique_key": unique_sensor_key
                 }
-            else:
-                # Default if no specification
-                cell_probs["sensors"][sensor_name] = {
-                    "probability": 0.0,
-                    "distance": 0.0,
-                    "type": "Unknown"
-                }
-        
-        # Calculate combined probability using the formula:
-        # P(detection) = 1 - P(all sensors fail to detect)
-        # P(all fail) = (1-P1) * (1-P2) * ... * (1-Pn)
-        if cell_probs["sensors"]:
-            p_all_fail = 1.0
-            for sensor_name, sensor_data in cell_probs["sensors"].items():
-                p_all_fail *= (1.0 - sensor_data["probability"])
+                
+                # FIXED: Store with multiple keys to ensure we can find it later
+                # Primary unique key (most specific)
+                sensor_location_data["sensor_types"][unique_sensor_key] = sensor_data
+                
+                # Model-specific key (medium specificity)
+                sensor_location_data["sensor_types"][model_key] = sensor_data
+                
+                # Type key (least specific, for fallback)
+                # Only store if this is the first sensor of this type, or if it overwrites, ensure it's consistent
+                if type_key not in sensor_location_data["sensor_types"]:
+                    sensor_location_data["sensor_types"][type_key] = sensor_data
+                
+                # Original type for exact matching
+                if sensor_type != type_key:
+                    sensor_location_data["sensor_types"][sensor_type] = sensor_data
+                
+                # print(f"DEBUG: Stored probability {prob} with keys: {unique_sensor_key}, {model_key}, {type_key}")
             
-            combined_prob = 1.0 - p_all_fail
-            cell_probs["combined_probability"] = combined_prob
+            cell_data["sensor_locations"][sensor_name] = sensor_location_data
         
-        # Store the results
-        results[grid_id] = cell_probs
+        results[grid_id] = cell_data
     
+    # print(f"DEBUG: Completed processing, returning {len(results)} grid results")
     return results
 
-def generate_probability_heatmap(grid_probabilities, boundary_type, boundary_points=None, sw_corner=None, ne_corner=None):
+# FIXED: Updated create_combined_json_output function with improved sensor matching
+def create_combined_json_output(all_uav_results, sensor_locations, sensor_specifications, 
+                            uav_specifications_list, boundary_type, boundary_points, 
+                            sw_corner, ne_corner, grid_size_degrees):
     """
-    Generate a heatmap visualization of detection probabilities
+    Create combined output with improved sensor matching logic and exact sensor names
+    FIXED: Properly matches sensors using unique keys to prevent data loss
+    """
+    import json
+    import numpy as np
     
-    Parameters:
-    -----------
-    grid_probabilities : dict
-        Dictionary of grid probabilities
-    boundary_type : str
-        Type of boundary (rectangle or polygon)
-    boundary_points : list, optional
-        List of boundary points for polygon
-    sw_corner : list, optional
-        Southwest corner for rectangle
-    ne_corner : list, optional
-        Northeast corner for rectangle
+    # print(f"DEBUG: Starting JSON creation with {len(all_uav_results)} UAV results")
+    
+    # Calculate center latitude for calculations
+    if sw_corner and ne_corner:
+        center_lat = (sw_corner[0] + ne_corner[0]) / 2
+    else:
+        lats = [point[0] for point in boundary_points]
+        center_lat = sum(lats) / len(lats)
+    
+    # Grid calculations
+    lat_grid_size = grid_size_degrees
+    lng_grid_size = grid_size_degrees / np.cos(np.radians(center_lat))
+    
+    if boundary_type == "rectangle" and sw_corner and ne_corner:
+        width_degrees = ne_corner[1] - sw_corner[1]
+        height_degrees = ne_corner[0] - sw_corner[0]
+        num_rows = int(np.ceil(height_degrees / lat_grid_size))
+        num_cols = int(np.ceil(width_degrees / lng_grid_size))
+    else:
+        lats = [point[0] for point in boundary_points]
+        lngs = [point[1] for point in boundary_points]
+        width_degrees = max(lngs) - min(lngs)
+        height_degrees = max(lats) - min(lats)
+        num_rows = int(np.ceil(height_degrees / lat_grid_size))
+        num_cols = int(np.ceil(width_degrees / lng_grid_size))
+    
+    # print(f"DEBUG: Grid dimensions: {num_rows} x {num_cols} = {num_rows * num_cols} cells")
+    
+    # Create target_types dictionary
+    target_types = {}
+    for uav_spec in uav_specifications_list:
+        uav_name = uav_spec.get("name", uav_spec.get("id", "UAV"))
+        altitude_m = uav_spec.get("altitude", 0.1) * 1000
+        speed_ms = uav_spec.get("speed", 36) / 3.6
         
-    Returns:
-    --------
-    bytes : PNG image data as bytes
-    """
-    # Extract grid data for visualization
-    grid_ids = []
-    centers = []
-    probs = []
+        target_types[uav_name] = {
+            "min_altitude": altitude_m,
+            "max_velocity": speed_ms
+        }
     
-    for grid_id, data in grid_probabilities.items():
-        grid_ids.append(grid_id)
-        centers.append(data["center"])
-        probs.append(data["combined_probability"])
+    # Create binary classifications
+    binary_classifications = {}
+    for uav_spec in uav_specifications_list:
+        uav_name = uav_spec.get("name", uav_spec.get("id", "UAV"))
+        binary_classifications[uav_name] = {"Pd_TH": 0.8}
     
-    # Convert to numpy arrays
-    centers = np.array(centers)
-    probs = np.array(probs)
+    # Main JSON structure
+    main_json = {
+        "sensor_types": [],
+        "sensors": {},
+        "coverage_areas": {},
+        "title": "Sensor Detection Analysis",
+        "config": {
+            "y_length": num_rows,
+            "long_lat_unit": "degree",
+            "x_length": num_cols,
+            "sq_side_units": "long_lat_degree",
+            "square_side": grid_size_degrees,
+            "time_unit": "hour",
+            "earth_radius": 6371000,
+            "binary_classifications": {
+                "target_detection": {
+                    "Pd_TH": 0.8
+                },
+                "foe_or_friend": {
+                    "Pd_TH": 0.8
+                }
+            },
+            "distance_unit": "m",
+            "south_west_corner": {
+                "long": sw_corner[1] if sw_corner else min([p[1] for p in boundary_points]),
+                "lat": sw_corner[0] if sw_corner else min([p[0] for p in boundary_points])
+            },
+            "target_types": target_types
+        },
+        "area_of_interest": []
+    }
     
-    # Create a figure
-    fig, ax = plt.figure(figsize=(10, 8), dpi=100), plt.gca()
+    probability_files = {}
+    grid_cells_info = {}
     
-    # Create custom colormap (red to green)
-    colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0)]  # R -> Y -> G
-    cmap = LinearSegmentedColormap.from_list("RYG", colors, N=256)
+    # Extract grid cells info with better error handling
+    if all_uav_results:
+        first_uav_id = list(all_uav_results.keys())[0]
+        grid_probabilities = all_uav_results[first_uav_id]["grid_probabilities"]
+        
+        # print(f"DEBUG: Processing {len(grid_probabilities)} grid cells from UAV {first_uav_id}")
+        
+        for grid_id, data in grid_probabilities.items():
+            if grid_id.startswith('r') and 'c' in grid_id:
+                try:
+                    parts = grid_id[1:].split('c')
+                    row = int(parts[0])
+                    col = int(parts[1])
+                    linear_index = row * num_cols + col
+                    grid_cells_info[linear_index] = {
+                        'grid_id': grid_id,
+                        'center': data['center'],
+                        'sw_corner': data.get('sw_corner', data['center'])
+                    }
+                except (ValueError, IndexError) as e:
+                    # print(f"WARNING: Could not parse grid_id {grid_id}: {e}")
+                    continue
     
-    # Plot the boundary
-    if boundary_type == "rectangle" and sw_corner and ne_corner:
-        # Create a rectangle patch
-        min_lat, min_lng = sw_corner
-        max_lat, max_lng = ne_corner
-        ax.plot([min_lng, max_lng, max_lng, min_lng, min_lng], 
-                [min_lat, min_lat, max_lat, max_lat, min_lat], 
-                'k-', linewidth=2)
-    elif boundary_type == "polygon" and boundary_points:
-        # Extract lat/lng points
-        lats = [p[0] for p in boundary_points]
-        lngs = [p[1] for p in boundary_points]
-        # Close the polygon
-        lats.append(lats[0])
-        lngs.append(lngs[0])
-        ax.plot(lngs, lats, 'k-', linewidth=2)
+    # Area of interest
+    area_of_interest_sw_corners = []
+    if grid_cells_info:
+        for linear_index, cell_info in grid_cells_info.items():
+            cell_sw_corner = cell_info['sw_corner']
+            # CHANGE: Swap lat/lng order to match working examples [lng, lat]
+            area_of_interest_sw_corners.append([cell_sw_corner[1], cell_sw_corner[0]])
+
+    main_json["area_of_interest"] = area_of_interest_sw_corners
     
-    # Create a scatter plot with probability-based colors
-    scatter = ax.scatter(centers[:, 1], centers[:, 0], c=probs, cmap=cmap, 
-                        s=100, alpha=0.7, edgecolors='k', linewidths=0.5)
+    # Extract unique sensor types
+    sensor_types = list(set(spec["type"].lower() for spec in sensor_specifications))
+    main_json["sensor_types"] = sensor_types
     
-    # Add a colorbar
-    cbar = plt.colorbar(scatter, ax=ax)
-    cbar.set_label('Detection Probability')
+    # print(f"DEBUG: Sensor types: {sensor_types}")
     
-    # Set plot limits based on the boundary
-    if boundary_type == "rectangle" and sw_corner and ne_corner:
-        min_lat, min_lng = sw_corner
-        max_lat, max_lng = ne_corner
-        # Add some padding
-        padding = 0.01  # degrees
-        ax.set_xlim(min_lng - padding, max_lng + padding)
-        ax.set_ylim(min_lat - padding, max_lat + padding)
-    elif boundary_type == "polygon" and boundary_points:
-        lats = [p[0] for p in boundary_points]
-        lngs = [p[1] for p in boundary_points]
-        # Add some padding
-        padding = 0.01  # degrees
-        ax.set_xlim(min(lngs) - padding, max(lngs) + padding)
-        ax.set_ylim(min(lats) - padding, max(lats) + padding)
+    # Process coverage areas (protected areas)
+    import streamlit as st
+    protected_areas = st.session_state.get('protected_areas', [])
     
-    # Set labels and title
-    ax.set_xlabel('Longitude')
-    ax.set_ylabel('Latitude')
-    ax.set_title('UAV Detection Probability Heatmap')
+    if protected_areas:
+        from map_utils import is_point_in_polygon
+        
+        for area in protected_areas:
+            area_name = area['name']
+            area_points = area['points']
+            
+            cells_in_area = []
+            for linear_index, cell_info in grid_cells_info.items():
+                cell_center = cell_info['center']
+                if is_point_in_polygon(cell_center, area_points):
+                    cells_in_area.append(linear_index)
+            
+            cells_in_area.sort()
+            if cells_in_area:
+                main_json["coverage_areas"][area_name] = {
+                    "area": cells_in_area
+                }
     
-    # Add grid lines
-    ax.grid(True, linestyle='--', alpha=0.6)
+    # Default coverage area if none defined
+    if not main_json["coverage_areas"]:
+        all_grid_cells = sorted(list(grid_cells_info.keys()))
+        main_json["coverage_areas"]["default_area"] = {
+            "area": all_grid_cells
+        }
     
-    # Save the figure to a BytesIO object
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
+    # FIXED: Process each unique sensor specification with exact names and proper matching
+    for spec_idx, sensor_spec in enumerate(sensor_specifications):
+        sensor_type = sensor_spec["type"].lower().strip()
+        sensor_model = sensor_spec["model"].strip()
+        sensor_manufacturer = sensor_spec.get("manufacturer", "").strip()
+        
+        # Create exact sensor name using model and manufacturer
+        # Format: "ModelName_Manufacturer" (replace spaces with underscores, remove special chars)
+        exact_sensor_name = f"{sensor_model}_{sensor_manufacturer}".replace(" ", "_").replace("-", "_").replace(".", "")
+        
+        # If the exact name is too long or has issues, use just the model name
+        if len(exact_sensor_name) > 50:
+            exact_sensor_name = sensor_model.replace(" ", "_").replace("-", "_").replace(".", "")
+        
+        # Ensure the name doesn't start with a number (JSON key requirement)
+        if exact_sensor_name[0].isdigit():
+            exact_sensor_name = f"sensor_{exact_sensor_name}"
+        
+        # FIXED: Create the same unique key used in preprocess_detection_probability
+        unique_sensor_key = f"{sensor_type}_{sensor_model}_{sensor_manufacturer}".replace(" ", "_").replace("-", "_").replace(".", "")
+        
+        # print(f"DEBUG: Processing sensor {exact_sensor_name} - {sensor_type} {sensor_model} (unique_key: {unique_sensor_key})")
+        
+        main_json["sensors"][exact_sensor_name] = {
+            "possible_locs": [],
+            "optional_params": "Sensor parameters for detection model",
+            "ppu": sensor_spec.get("price_per_unit", 500000),
+            "model": sensor_model,
+            "detection_period": 0.01,
+            "type": sensor_type,
+            "make": sensor_manufacturer
+        }
+        
+        # Process each sensor location
+        for j, location in enumerate(sensor_locations):
+            coverage_metrics = {}
+            
+            # Process each UAV specification
+            for uav_spec in uav_specifications_list:
+                uav_name = uav_spec.get("name", uav_spec.get("id", "UAV"))
+                uav_id = uav_spec.get("id", uav_name)
+                
+                # Use exact sensor name in filename
+                detection_filename = f"{exact_sensor_name}_loc{j+1}_{uav_name}_detection.json"
+                
+                coverage_metrics[uav_name] = {
+                    "target_detection": {
+                        "Pd": {"@file": detection_filename},
+                        "Pfa": "tbd"
+                    },
+                    "foe_or_friend": {
+                        "Pd": {"@file": detection_filename}
+                    }
+                }
+                
+                # Create detection probabilities data
+                detection_probs = []
+                all_grid_cells = sorted(list(grid_cells_info.keys()))
+                
+                # print(f"DEBUG: Creating detection file {detection_filename} for {len(all_grid_cells)} cells")
+                
+                if uav_id in all_uav_results:
+                    grid_probabilities = all_uav_results[uav_id]["grid_probabilities"]
+                    prob_by_index = {}
+                    
+                    # Extract probabilities for each grid cell
+                    for grid_id, data in grid_probabilities.items():
+                        if grid_id.startswith('r') and 'c' in grid_id:
+                            try:
+                                parts = grid_id[1:].split('c')
+                                row = int(parts[0])
+                                col = int(parts[1])
+                                linear_index = row * num_cols + col
+                                
+                                # Find probability for this sensor
+                                prob = 0.0
+                                sensor_name = location.get("name", f"Sensor_{j+1}")
+                                
+                                if sensor_name in data["sensor_locations"]:
+                                    sensor_data = data["sensor_locations"][sensor_name]
+                                    
+                                    # FIXED: Try multiple approaches to find the matching sensor type
+                                    found = False
+                                    
+                                    # Approach 1: Try unique sensor key (most specific)
+                                    if unique_sensor_key in sensor_data["sensor_types"]:
+                                        type_data = sensor_data["sensor_types"][unique_sensor_key]
+                                        prob = type_data["probability"]
+                                        found = True
+                                        # print(f"DEBUG: Found unique key match for {sensor_name}, {unique_sensor_key}: {prob}")
+                                    
+                                    # Approach 2: Try model-specific key
+                                    if not found:
+                                        model_key = f"{sensor_type}_{sensor_model.strip().replace(' ', '_').replace('-', '_').replace('.', '')}"
+                                        if model_key in sensor_data["sensor_types"]:
+                                            type_data = sensor_data["sensor_types"][model_key]
+                                            prob = type_data["probability"]
+                                            found = True
+                                            # print(f"DEBUG: Found model key match for {sensor_name}, {model_key}: {prob}")
+                                    
+                                    # Approach 3: Try exact sensor type match with model verification
+                                    if not found and sensor_type in sensor_data["sensor_types"]:
+                                        type_data = sensor_data["sensor_types"][sensor_type]
+                                        if type_data["model"].strip() == sensor_model.strip():
+                                            prob = type_data["probability"]
+                                            found = True
+                                            # print(f"DEBUG: Found exact match for {sensor_name}, {sensor_type}, {sensor_model}: {prob}")
+                                    
+                                    # Approach 4: Try all available sensor types for this model (fallback)
+                                    if not found:
+                                        for available_type, type_data in sensor_data["sensor_types"].items():
+                                            if (type_data["model"].strip() == sensor_model.strip() and 
+                                                type_data.get("spec_index") == spec_idx):
+                                                prob = type_data["probability"]
+                                                found = True
+                                                # print(f"DEBUG: Found spec index match for {sensor_name}, {available_type}, {sensor_model}: {prob}")
+                                                break
+                                    
+                                    # if not found:
+                                    #     print(f"WARNING: No probability found for {sensor_name}, type {sensor_type}, model {sensor_model}, unique_key {unique_sensor_key}")
+                                    #     print(f"Available keys: {list(sensor_data['sensor_types'].keys())}")
+                                
+                                prob_by_index[linear_index] = prob
+                            except (ValueError, IndexError):
+                                continue
+                    
+                    # Create probability array
+                    non_zero_count = 0
+                    max_prob = 0.0
+                    for linear_index in all_grid_cells:
+                        prob = prob_by_index.get(linear_index, 0.0)
+                        detection_probs.append(prob)
+                        if prob > 0:
+                            non_zero_count += 1
+                        max_prob = max(max_prob, prob)
+                    
+                    # print(f"DEBUG: Detection probs for {detection_filename}: {len(detection_probs)} values, non-zero: {non_zero_count}, max: {max_prob:.3f}")
+                
+                # Store probability file
+                detection_probs_formatted = "[\n" + ",\n".join([f"  {prob}" for prob in detection_probs]) + "\n]"
+                probability_files[detection_filename] = detection_probs_formatted
+            
+            # Create location data
+            location_data = {
+                "coverage_metrics": coverage_metrics,
+                "long": location["lng"],
+                "lat": location["lat"]
+            }
+            
+            main_json["sensors"][exact_sensor_name]["possible_locs"].append(location_data)
     
-    # Close the figure to free memory
-    plt.close(fig)
+    main_json_string = json.dumps(main_json, indent=2)
     
-    # Return the image data
-    return buf
+    # print(f"DEBUG: Created {len(probability_files)} probability files")
+    for filename in list(probability_files.keys())[:3]:  # Show first 3 filenames
+        content = probability_files[filename]
+        non_zero_count = len([x for x in content.split(',') if float(x.strip().replace('[', '').replace(']', '').replace('\n', '')) > 0])
+        # print(f"DEBUG: File {filename} has {len(content.split(','))} total values, {non_zero_count} non-zero")
+    
+    return main_json_string, probability_files
 
 def detection_probability_tab():
     """
-    Preprocess Detection Probability Tab
+    Preprocess Detection Probability Tab with support for multiple UAV specifications,
+    generating both main JSON and separate probability files in a ZIP.
+    Only creates detection probability files, but includes both target_detection and foe_or_friend sections that reference the same detection files.
     """
-    st.header("Detection Probability Preprocessing")
+    st.header("Detection Probability Analysis")
     
     # Check if location has been selected first
     if not st.session_state.location_selected:
@@ -338,167 +602,70 @@ def detection_probability_tab():
         st.warning("Please place sensors in the Possible Sensor Placement tab first.")
         return
     
-    # Create layout
-    col1, col2 = st.columns([3, 2])
+    # Check if UAV specifications are added
+    if not st.session_state.get('uav_specifications_list'):
+        st.warning("Please add at least one UAV configuration in the sidebar.")
+        return
     
-    with col1:
-        st.subheader("Detection Probability Parameters")
-        
-        # Show sensor locations and types
-        st.write("### Sensor Locations")
-        
-        # Display sensors in a table
-        if st.session_state.potential_locations:
-            sensor_data = []
-            for i, location in enumerate(st.session_state.potential_locations):
-                # Get sensor specifications if available
-                sensor_spec = None
-                sensor_type = "Unknown"
-                detection_range = "N/A"
-                
-                if i < len(st.session_state.sensor_specifications):
-                    sensor_spec = st.session_state.sensor_specifications[i]
-                    sensor_type = sensor_spec.get("type", "Unknown")
-                    detection_range = f"{sensor_spec.get('detection_range', 'N/A')} m"
-                
-                sensor_data.append({
-                    "Name": location.get("name", f"Sensor {i+1}"),
-                    "Latitude": f"{location['lat']:.6f}",
-                    "Longitude": f"{location['lng']:.6f}",
-                    "Type": sensor_type,
-                    "Range": detection_range
-                })
-            
-            # Convert to DataFrame for better display
-            sensors_df = pd.DataFrame(sensor_data)
-            st.dataframe(sensors_df, use_container_width=True)
-        
-        # Show UAV settings
-        st.write("### UAV Settings")
-        
-        # Get UAV settings from session state
-        uav_altitude = st.session_state.get("uav_altitude", 100.0)
-        uav_speed = st.session_state.get("uav_speed", 10.0)
-        
-        # Create a form for UAV settings
-        with st.form("uav_settings_form"):
-            col_a, col_b = st.columns(2)
-            
-            with col_a:
-                uav_altitude = st.number_input(
-                    "UAV Altitude (meters)", 
-                    min_value=10.0,
-                    max_value=5000.0,
-                    value=uav_altitude,
-                    step=10.0
-                )
-            
-            with col_b:
-                uav_speed = st.number_input(
-                    "UAV Speed (m/s)",
-                    min_value=1.0,
-                    max_value=100.0,
-                    value=uav_speed,
-                    step=1.0
-                )
-            
-            # Store UAV settings in session state
-            if st.form_submit_button("Update UAV Settings"):
-                st.session_state.uav_altitude = uav_altitude
-                st.session_state.uav_speed = uav_speed
-                st.success("UAV settings updated!")
-        
-        # Add advanced settings expander
-        with st.expander("Advanced Settings"):
-            # Random seed for reproducible results
-            random_seed = st.number_input(
-                "Random Seed", 
-                min_value=0,
-                value=42,
-                help="Set a random seed for reproducible results"
-            )
-            
-            # Set the random seed
-            np.random.seed(random_seed)
-            
-            # Add options for probability calculation models
-            prob_model = st.selectbox(
-                "Probability Model",
-                ["Gaussian Falloff", "Linear Falloff", "Exponential Falloff"],
-                index=0,
-                help="Select the mathematical model for calculating detection probability based on distance"
-            )
-            
-            # Add options for combining probabilities
-            combination_method = st.selectbox(
-                "Probability Combination Method",
-                ["Independent Sensors (Default)", "Maximum Probability", "Weighted Average"],
-                index=0,
-                help="Method for combining probabilities from multiple sensors"
-            )
-        
-        # Button to run detection probability calculation
-        run_button = st.button("Run Detection Probability Analysis", type="primary")
-        
-        # Store calculation status in session state
-        if "detection_prob_calculated" not in st.session_state:
-            st.session_state.detection_prob_calculated = False
-        
+    # Display how many UAV configurations are available
+    st.info(f"Found {len(st.session_state.uav_specifications_list)} UAV configuration(s) to analyze.")
+    
+    # Direct run button for detection probability calculation
+    run_button = st.button("Run Detection Probability Analysis & Generate JSON", type="primary")
+    
+    if run_button or st.session_state.get('detection_prob_calculated', False):
         if run_button:
             # Show a spinner while calculating
-            with st.spinner("Calculating detection probabilities..."):
-                # Check if we have a grid
-                if st.session_state.grid_enabled and "grid_size_km" in st.session_state:
+            with st.spinner("Calculating detection probabilities for all UAV configurations..."):
+                # Check if we have a grid - UPDATED CONDITION
+                if st.session_state.grid_enabled and "grid_size_degrees" in st.session_state:
                     # Create the grid data based on grid settings
-                    # This would normally be handled by the map_selection_tab function
-                    # Here we'll recreate it for our calculations
                     sw_corner = st.session_state.sw_corner
                     ne_corner = st.session_state.ne_corner
-                    grid_size_km = st.session_state.grid_size_km
+                    grid_size_degrees = st.session_state.grid_size_degrees  # Changed variable name
                     
                     # Get center latitude for calculations
                     center_lat = (sw_corner[0] + ne_corner[0]) / 2
                     
-                    # Convert grid size from km to degrees
-                    # 1 degree of latitude is approximately 111 km
-                    lat_deg_per_km = 1 / 111.0
-                    grid_size_lat = grid_size_km * lat_deg_per_km
+                    # Grid size is already in degrees - calculate longitude adjustment
+                    lat_grid_size = grid_size_degrees
+                    lng_grid_size = grid_size_degrees / np.cos(np.radians(center_lat))
                     
-                    # 1 degree of longitude varies with latitude
-                    lng_deg_per_km = 1 / (111.0 * np.cos(np.radians(center_lat)))
-                    grid_size_lng = grid_size_km * lng_deg_per_km
+                    # Calculate grid dimensions in degrees
+                    width_degrees = ne_corner[1] - sw_corner[1]
+                    height_degrees = ne_corner[0] - sw_corner[0]
                     
-                    # Calculate grid dimensions
-                    width_km = (ne_corner[1] - sw_corner[1]) / lng_deg_per_km
-                    height_km = (ne_corner[0] - sw_corner[0]) / lat_deg_per_km
-                    
-                    num_rows = int(np.ceil(height_km / grid_size_km))
-                    num_cols = int(np.ceil(width_km / grid_size_km))
+                    num_rows = int(np.ceil(height_degrees / lat_grid_size))
+                    num_cols = int(np.ceil(width_degrees / lng_grid_size))
                     
                     # Create grid cells
                     grid_data = []
                     
                     for i in range(num_rows):
                         for j in range(num_cols):
-                            # Calculate cell boundaries
-                            lat_sw = sw_corner[0] + i * grid_size_lat
-                            lng_sw = sw_corner[1] + j * grid_size_lng
+                            # Calculate cell boundaries using degree-based grid
+                            lat_sw = sw_corner[0] + i * lat_grid_size
+                            lng_sw = sw_corner[1] + j * lng_grid_size
                             
-                            lat_ne = lat_sw + grid_size_lat
-                            lng_ne = lng_sw + grid_size_lng
+                            lat_ne = lat_sw + lat_grid_size
+                            lng_ne = lng_sw + lng_grid_size
                             
                             # Calculate cell center
-                            center_lat = (lat_sw + lat_ne) / 2
-                            center_lng = (lng_sw + lng_ne) / 2
+                            center_lat_cell = (lat_sw + lat_ne) / 2
+                            center_lng_cell = (lng_sw + lng_ne) / 2
                             
                             # Check if center is inside the boundary
-                            is_inside = True
-                            if st.session_state.boundary_type == "polygon":
+                            if st.session_state.boundary_type == "rectangle":
+                                # For rectangle, check if center is within the defined bounds
+                                is_inside = (sw_corner[0] <= center_lat_cell <= ne_corner[0] and 
+                                            sw_corner[1] <= center_lng_cell <= ne_corner[1])
+                            elif st.session_state.boundary_type == "polygon":
                                 is_inside = is_point_in_polygon(
-                                    [center_lat, center_lng],
+                                    [center_lat_cell, center_lng_cell],
                                     st.session_state.boundary_points
                                 )
-                            
+                            else:
+                                is_inside = True
                             # Only add cells inside the boundary
                             if is_inside:
                                 grid_cell = {
@@ -507,183 +674,115 @@ def detection_probability_tab():
                                     "col": j,
                                     "sw_corner": [lat_sw, lng_sw],
                                     "ne_corner": [lat_ne, lng_ne],
-                                    "center": [center_lat, center_lng],
-                                    "size_km": grid_size_km
+                                    "center": [center_lat_cell, center_lng_cell],
+                                    "size_degrees": grid_size_degrees  # Changed: now stores degrees instead of km
                                 }
                                 grid_data.append(grid_cell)
                     
-                    # Calculate detection probabilities
-                    uav_specs = {
-                        "altitude": uav_altitude,
-                        "speed": uav_speed
-                    }
+                    # Calculate detection probabilities for each UAV configuration
+                    all_uav_results = {}
                     
-                    grid_probabilities = preprocess_detection_probability(
-                        grid_data,
-                        st.session_state.potential_locations,
-                        st.session_state.sensor_specifications,
-                        uav_specs
-                    )
+                    for uav_spec in st.session_state.uav_specifications_list:
+                        # Create UAV spec dictionary with required format
+                        uav_specs = {
+                            "altitude": uav_spec["altitude"],
+                            "speed": uav_spec["speed"]
+                        }
+                        
+                        # Calculate probabilities for this UAV
+                        grid_probabilities = preprocess_detection_probability(
+                            grid_data,
+                            st.session_state.potential_locations,
+                            st.session_state.sensor_specifications,
+                            uav_specs
+                        )
+                        
+                        # Add SW corner information to each grid cell in the results
+                        for grid_id, prob_data in grid_probabilities.items():
+                            # Find the corresponding grid cell from grid_data
+                            for grid_cell in grid_data:
+                                if grid_cell["grid_id"] == grid_id:
+                                    prob_data["sw_corner"] = grid_cell["sw_corner"]
+                                    break
+                        
+                        # Store results with UAV ID as key
+                        all_uav_results[uav_spec["id"]] = {
+                            "uav_spec": uav_spec,
+                            "grid_probabilities": grid_probabilities
+                        }
                     
                     # Store results in session state
-                    st.session_state.grid_probabilities = grid_probabilities
+                    st.session_state.all_uav_results = all_uav_results
                     st.session_state.detection_prob_calculated = True
                     
-                    # Generate heatmap
-                    heatmap_buf = generate_probability_heatmap(
-                        grid_probabilities,
+                    # Create the combined JSON output - main file and probability files
+                    main_json, probability_files = create_combined_json_output(
+                        all_uav_results,
+                        st.session_state.potential_locations,
+                        st.session_state.sensor_specifications,
+                        st.session_state.uav_specifications_list,
                         st.session_state.boundary_type,
                         st.session_state.boundary_points,
                         st.session_state.sw_corner,
-                        st.session_state.ne_corner
+                        st.session_state.ne_corner,
+                        grid_size_degrees  # Changed: now passing degrees instead of km
                     )
                     
-                    # Store the heatmap in session state
-                    st.session_state.prob_heatmap = heatmap_buf
+                    # Store in session state
+                    st.session_state.main_json = main_json
+                    st.session_state.probability_files = probability_files
                     
-                    st.success("Detection probability analysis completed!")
+                    # Create a zip file containing all JSON files
+                    import zipfile
+                    import io
+
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                        # Add main JSON file
+                        zipf.writestr("muscat_input_var_core.json", main_json)
+                        
+                        # Add all probability files (detection only)
+                        for filename, content in probability_files.items():
+                            zipf.writestr(filename, content)
+
+                    zip_buffer.seek(0)
+                    st.session_state.zip_data = zip_buffer.getvalue()
+
+                    # Save the zip file to a persistent location for the analytical model
+                    import os
+                    from datetime import datetime
+
+                    # Create output directory if it doesn't exist
+                    output_dir = "detection_outputs"
+                    os.makedirs(output_dir, exist_ok=True)
+
+                    # Generate filename with timestamp
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    zip_filename = f"muscat_detection_{timestamp}.zip"
+                    zip_path = os.path.join(output_dir, zip_filename)
+
+                    # Write the zip data to a file
+                    with open(zip_path, 'wb') as f:
+                        f.write(st.session_state.zip_data)
+
+                    # IMPORTANT: Save the zip file path to session state
+                    st.session_state.detection_zip_path = zip_path
                 else:
                     st.error("Please enable and configure the grid in the Map & Selection tab first.")
-    
-    with col2:
-        st.subheader("Results Visualization")
+                    return
         
-        # Show the detection probability heatmap if calculated
-        if st.session_state.detection_prob_calculated and "prob_heatmap" in st.session_state:
-            st.image(st.session_state.prob_heatmap, caption="Detection Probability Heatmap")
+        # Display results if they exist
+        if st.session_state.get('detection_prob_calculated', False):
+            # Add download button for the ZIP file
+            st.success("Detection probability analysis completed!")
             
-            # Add a download button for the heatmap
-            heatmap_bytes = st.session_state.prob_heatmap.getvalue()
-            b64 = base64.b64encode(heatmap_bytes).decode()
-            href = f'<a href="data:image/png;base64,{b64}" download="detection_probability_heatmap.png">Download Heatmap</a>'
-            st.markdown(href, unsafe_allow_html=True)
-            
-            # Display statistics about the results
-            if "grid_probabilities" in st.session_state:
-                grid_probs = st.session_state.grid_probabilities
-                
-                if grid_probs:
-                    # Calculate statistics
-                    probs = [data["combined_probability"] for data in grid_probs.values()]
-                    avg_prob = np.mean(probs)
-                    min_prob = np.min(probs)
-                    max_prob = np.max(probs)
-                    median_prob = np.median(probs)
-                    
-                    # Show statistics
-                    st.write("### Detection Statistics")
-                    col_a, col_b = st.columns(2)
-                    
-                    with col_a:
-                        st.metric("Average Probability", f"{avg_prob:.2%}")
-                        st.metric("Minimum Probability", f"{min_prob:.2%}")
-                    
-                    with col_b:
-                        st.metric("Maximum Probability", f"{max_prob:.2%}")
-                        st.metric("Median Probability", f"{median_prob:.2%}")
-                    
-                    # Show coverage statistics
-                    low_coverage = len([p for p in probs if p < 0.3])
-                    med_coverage = len([p for p in probs if 0.3 <= p < 0.7])
-                    high_coverage = len([p for p in probs if p >= 0.7])
-                    total_cells = len(probs)
-                    
-                    st.write("### Coverage Analysis")
-                    st.write(f"Total grid cells: {total_cells}")
-                    
-                    # Create a DataFrame for the coverage stats
-                    coverage_data = {
-                        "Coverage Level": ["Low (0-30%)", "Medium (30-70%)", "High (70-100%)"],
-                        "Cell Count": [low_coverage, med_coverage, high_coverage],
-                        "Percentage": [
-                            f"{low_coverage/total_cells:.1%}",
-                            f"{med_coverage/total_cells:.1%}",
-                            f"{high_coverage/total_cells:.1%}"
-                        ]
-                    }
-                    coverage_df = pd.DataFrame(coverage_data)
-                    st.dataframe(coverage_df, use_container_width=True)
-                    
-                    # Create a pie chart of coverage levels
-                    fig, ax = plt.figure(figsize=(6, 6)), plt.gca()
-                    ax.pie([low_coverage, med_coverage, high_coverage],
-                          labels=["Low", "Medium", "High"],
-                          autopct='%1.1f%%',
-                          colors=['#ff6666', '#ffcc66', '#66cc66'],
-                          startangle=90)
-                    ax.axis('equal')
-                    st.pyplot(fig)
-                    
-                    # Export results option
-                    st.write("### Export Results")
-                    
-                    # Convert grid probabilities to CSV
-                    csv_data = []
-                    for grid_id, data in grid_probs.items():
-                        row = {
-                            "Grid ID": grid_id,
-                            "Latitude": data["center"][0],
-                            "Longitude": data["center"][1],
-                            "Combined Probability": data["combined_probability"]
-                        }
-                        
-                        # Add individual sensor probabilities
-                        for sensor_name, sensor_data in data["sensors"].items():
-                            row[f"{sensor_name} Probability"] = sensor_data["probability"]
-                            row[f"{sensor_name} Distance (m)"] = sensor_data["distance"]
-                        
-                        csv_data.append(row)
-                    
-                    # Convert to DataFrame and then to CSV
-                    results_df = pd.DataFrame(csv_data)
-                    csv = results_df.to_csv(index=False)
-                    
-                    st.download_button(
-                        label="Download Results as CSV",
-                        data=csv,
-                        file_name='detection_probability_results.csv',
-                        mime='text/csv',
-                    )
-                    
-                    # Export as GeoJSON option
-                    geojson_data = {
-                        "type": "FeatureCollection",
-                        "features": []
-                    }
-                    
-                    for grid_id, data in grid_probs.items():
-                        # Create a feature for this grid cell
-                        feature = {
-                            "type": "Feature",
-                            "properties": {
-                                "grid_id": grid_id,
-                                "combined_probability": data["combined_probability"]
-                            },
-                            "geometry": {
-                                "type": "Point",
-                                "coordinates": [data["center"][1], data["center"][0]]
-                            }
-                        }
-                        
-                        # Add individual sensor probabilities to properties
-                        for sensor_name, sensor_data in data["sensors"].items():
-                            feature["properties"][f"{sensor_name}_probability"] = sensor_data["probability"]
-                            feature["properties"][f"{sensor_name}_distance"] = sensor_data["distance"]
-                        
-                        geojson_data["features"].append(feature)
-                    
-                    # Convert to JSON string
-                    geojson_str = json.dumps(geojson_data, indent=2)
-                    
-                    st.download_button(
-                        label="Download Results as GeoJSON",
-                        data=geojson_str,
-                        file_name='detection_probability_results.geojson',
-                        mime='application/geo+json',
-                    )
-        else:
-            st.info("Run the detection probability analysis to see results here.")
-            
-            # Show a placeholder image
-            st.image("https://via.placeholder.com/600x400.png?text=Detection+Probability+Heatmap", 
-                    caption="Placeholder for detection probability heatmap")
+            st.download_button(
+                label="Download All Detection Data (ZIP)",
+                data=st.session_state.zip_data,
+                file_name="muscat_input_var_core.zip",
+                mime="application/zip",
+                help="Download main JSON and detection probability files in a ZIP archive"
+            )
+            # Show that the file is saved and ready for the analytical model
+            # if 'detection_zip_path' in st.session_state:
+            #     st.info(f"✓ Detection data saved and ready for analytical model: {os.path.basename(st.session_state.detection_zip_path)}")

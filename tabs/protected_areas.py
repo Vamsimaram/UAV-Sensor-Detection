@@ -70,47 +70,6 @@ def protected_areas_tab():
             if st.session_state.protected_areas:
                 st.markdown("---")
                 
-                # Create the GeoJSON data
-                geojson_data = {
-                    "type": "Coverage Area Collection",
-                    "features": []
-                }
-                
-                for area in st.session_state.protected_areas:
-                    # Convert points from [lat, lng] to [lng, lat] for GeoJSON
-                    # Use only the unique points drawn by the user
-                    coordinates = [[point[1], point[0]] for point in area['points']]
-                    
-                    # For GeoJSON format, we need to close the polygon, but only for export
-                    coordinates_closed = coordinates.copy()
-                    if coordinates_closed[0] != coordinates_closed[-1]:
-                        coordinates_closed.append(coordinates_closed[0])
-                    
-                    feature = {
-                        "type": "Feature",
-                        "properties": {
-                            "name": area.get('name', "Unnamed Area"),
-                            "point_count": len(area['points'])  # Store actual unique point count
-                        },
-                        "geometry": {
-                            "type": "Polygon",
-                            "coordinates": [coordinates_closed]  # Use closed version only for GeoJSON
-                        }
-                    }
-                    geojson_data["features"].append(feature)
-                
-                # Convert to JSON string
-                geojson_str = json.dumps(geojson_data, indent=2)
-                
-                # Export button
-                st.download_button(
-                    label="📋 Export GeoJSON",
-                    data=geojson_str,
-                    file_name='protected_areas.geojson',
-                    mime='application/geo+json',
-                    key="export_protected_areas_button"
-                )
-                
                 # Clear button
                 if st.button("🗑️ Clear All", key="clear_protected_areas_button"):
                     st.session_state.protected_areas = []
@@ -203,39 +162,6 @@ def protected_areas_tab():
             }
         )
         draw.add_to(m)
-        
-        # Add instructions as a map control
-        instructions_html = """
-        <div style="position: fixed; 
-                    bottom: 50px; 
-                    left: 50px; 
-                    width: 300px;
-                    height: auto;
-                    background-color: white;
-                    border-radius: 5px;
-                    box-shadow: 0 0 5px rgba(0,0,0,0.5);
-                    padding: 10px;
-                    z-index: 1000;">
-            <h4 style="margin-top: 0;">Protected Area Instructions:</h4>
-            <ul style="padding-left: 20px; margin-bottom: 0;">
-                <li>Click the polygon tool in the top right corner</li>
-                <li>Draw a polygon (4 points) to define a protected area</li>
-                <li>Enter a unique name (cannot start with a number)</li>
-                <li>Click "Set Protected Areas" after EACH polygon</li>
-                <li>Draw multiple polygons for separate protected areas</li>
-                <li>Hover over polygons to see their names</li>
-                <li>Use the Export button to save all protected areas</li>
-            </ul>
-            <p style="color: red; font-weight: bold; margin-top: 5px; margin-bottom: 0;">
-                Note: All points of the polygon must be inside the highlighted region!
-            </p>
-            <p style="margin-top: 5px; margin-bottom: 0;">
-                <b>Blue circles</b>: Sensor locations from Sensor tab
-            </p>
-        </div>
-        """
-        instructions = folium.Element(instructions_html)
-        m.get_root().html.add_child(instructions)
         
         # Display the map and get drawing data
         map_data = st_folium(m, width=800, height=600, key="protected_areas_map_display")

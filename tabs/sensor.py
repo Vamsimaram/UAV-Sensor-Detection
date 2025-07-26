@@ -73,37 +73,6 @@ def sensor_tab():
             if st.session_state.potential_locations:
                 st.markdown("---")
                 
-                # Create the GeoJSON data
-                geojson_data = {
-                    "type": "Sensor Point Collection",
-                    "features": []
-                }
-
-                for location in st.session_state.potential_locations:
-                    feature = {
-                        "type": "Feature",
-                        "properties": {
-                            "name": location.get('name', f"Sensor {i+1}")  # Add the sensor name to properties
-                        },
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": [location['lng'], location['lat']]
-                        }
-                    }
-                    geojson_data["features"].append(feature)
-                
-                # Convert to JSON string
-                geojson_str = json.dumps(geojson_data, indent=2)
-                
-                # Export button
-                st.download_button(
-                    label="📋 Export GeoJSON",
-                    data=geojson_str,
-                    file_name='sensor_points.geojson',
-                    mime='application/geo+json',
-                    key="export_button_in_list"
-                )
-                
                 # Clear button
                 if st.button("🗑️ Clear All", key="clear_button_in_list"):
                     st.session_state.potential_locations = []
@@ -193,39 +162,6 @@ def sensor_tab():
             }
         )
         draw.add_to(m)
-        
-        # Add instructions as a map control
-        instructions_html = """
-        <div style="position: fixed; 
-                    bottom: 50px; 
-                    left: 50px; 
-                    width: 300px;
-                    height: auto;
-                    background-color: white;
-                    border-radius: 5px;
-                    box-shadow: 0 0 5px rgba(0,0,0,0.5);
-                    padding: 10px;
-                    z-index: 1000;">
-            <h4 style="margin-top: 0;">Sensor Placement Instructions:</h4>
-            <ul style="padding-left: 20px; margin-bottom: 0;">
-                <li>Click the marker tool in the top right corner</li>
-                <li>Place ONE point at a time on the map</li>
-                <li>Enter a unique name (cannot start with a number)</li>
-                <li>Click "Set Drawn Sensors" after EACH point</li>
-                <li>Points must be inside the red highlighted area</li>
-                <li>Hover over sensors to see their names</li>
-                <li>Use the Export button to save your sensor locations</li>
-            </ul>
-            <p style="color: red; font-weight: bold; margin-top: 5px; margin-bottom: 0;">
-                Note: Points outside the highlighted area will be ignored!
-            </p>
-            <p style="margin-top: 5px; margin-bottom: 0;">
-                <b>Green areas</b>: Protected areas (sensors can be placed inside)
-            </p>
-        </div>
-        """
-        instructions = folium.Element(instructions_html)
-        m.get_root().html.add_child(instructions)
         
         # Display the map and get drawing data
         map_data = st_folium(m, width=800, height=600, key="sensor_map_display")

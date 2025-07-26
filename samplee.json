@@ -1,0 +1,131 @@
+{
+    "sensor_types": [
+        "radar",
+        "optical"
+    ],
+    "sensors": {
+        "radar4": {
+            "possible_locs": [
+                {
+                    "coverage_metrics": {"Cat1": {
+                        "target_detection": {
+                            "Pd": {"@file": "work/coverages/18735f5d-2b1a-4fee-8a2d-3cb1093bb06b_optimization_0df68ca9-fadf-43f2-a782-15f858797f91_radar4_100_Cat1.json"},
+                            "Pfa": "tbd"
+                        },
+                        "foe_or_friend": {
+                            "Pd": {"@file": "work/coverages/18735f5d-2b1a-4fee-8a2d-3cb1093bb06b_optimization_0df68ca9-fadf-43f2-a782-15f858797f91_radar4_100_Cat1.json"},
+                            "Pfa": "tbd"
+                        }
+                    }},
+                    "long": 38.67478920520597,
+                    "lat": -77.66098022460939
+                }
+            ],
+            "optional_params": "whatever you'd like, e.g, needed for matlab model etc",
+            "ppu": 500000,
+            "model": "model_radar3",
+            "detection_period": 0.01,
+            "type": "radar",
+            "make": "make_radar3"
+        },
+        "Optical180": {
+            "possible_locs": [
+                {
+                    "coverage_metrics": {"Cat1": {
+                        "target_detection": {
+                            "Pd": {"@file": "work/coverages/18735f5d-2b1a-4fee-8a2d-3cb1093bb06b_optimization_0df68ca9-fadf-43f2-a782-15f858797f91_Optical180_100_Cat1.json"},
+                            "Pfa": "tbd"
+                        },
+                        "foe_or_friend": {
+                            "Pd": {"@file": "work/coverages/18735f5d-2b1a-4fee-8a2d-3cb1093bb06b_optimization_0df68ca9-fadf-43f2-a782-15f858797f91_Optical180_100_Cat1.json"},
+                            "Pfa": "tbd"
+                        }
+                    }},
+                    "long": 38.67478920520597,
+                    "lat": -77.66098022460939
+                }
+            ],
+            "optional_params": "whatever you'd like, e.g, needed for matlab model etc",
+            "ppu": 2000,
+            "model": "model_optical180",
+            "detection_period": 0.01,
+            "type": "optical",
+            "make": "make_optical180"
+        },
+        "Optical360": {
+            "possible_locs": [
+                {
+                    "coverage_metrics": {"Cat1": {
+                        "target_detection": {
+                            "Pd": {"@file": "work/coverages/18735f5d-2b1a-4fee-8a2d-3cb1093bb06b_optimization_0df68ca9-fadf-43f2-a782-15f858797f91_Optical360_100_Cat1.json"},
+                            "Pfa": "tbd"
+                        },
+                        "foe_or_friend": {
+                            "Pd": {"@file": "work/coverages/18735f5d-2b1a-4fee-8a2d-3cb1093bb06b_optimization_0df68ca9-fadf-43f2-a782-15f858797f91_Optical360_100_Cat1.json"},
+                            "Pfa": "tbd"
+                        }
+                    }},
+                    "long": 38.67478920520597,
+                    "lat": -77.66098022460939
+                }
+            ],
+            "optional_params": "whatever you'd like, e.g, needed for matlab model etc",
+            "ppu": 5000,
+            "model": "model_optical360",
+            "detection_period": 0.01,
+            "type": "optical",
+            "make": "make_optical360"
+        }
+    },
+    "coverage_areas": {"aop1": {"area": [
+        261,
+        263,
+        296,
+        297,
+        298,
+        300,
+        830,
+        831
+    ]}},
+    "title": "opt01",
+    "config": {
+        "y_length": 1098,
+        "long_lat_unit": "degree",
+        "x_length": 1098,
+        "sq_side_units": "long_lat_degree",
+        "square_side": 0.0288,
+        "time_unit": "hour",
+        "earth_radius": 6371,
+        "binary_classifications": {
+            "target_detection": {"Pd_TH": 0.8},
+            "foe_or_friend": {"Pd_TH": 0.8500000000000001}
+        },
+        "distance_unit": "km",
+        "south_west_corner": {
+            "long": -78.39639711914063,
+            "lat": 37.98566728803286
+        },
+        "target_types": {"Cat1": {
+            "min_altitude": 100,
+            "max_velocity": 29.988
+        }}
+    },
+    "area_of_interest": [
+        [
+            38.82086728803286,
+            -78.19479711914063
+        ],
+        [
+            38.82086728803286,
+            -78.16599711914063
+        ],
+        [
+            38.82086728803286,
+            -78.13719711914064
+        ],
+        [
+            37.98566728803286,
+            -77.44599711914063
+        ]
+    ]
+}

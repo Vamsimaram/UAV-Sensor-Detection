@@ -16,6 +16,8 @@ from tabs.map_selection import map_selection_tab
 from tabs.sensor import sensor_tab
 from tabs.protected_areas import protected_areas_tab
 from tabs.detection_probability import detection_probability_tab
+from tabs.prediction import prediction_tab
+
 
 # Set up the Streamlit page configuration
 st.set_page_config(page_title="UAV Sensor Detection Probability Calculator", 
@@ -70,7 +72,8 @@ def load_sensor_data():
 
 def main():
     # Centered title
-    st.markdown("<h1 style='text-align: center;'>UAV Sensor Detection Probability Calculator</h1>", unsafe_allow_html=True)
+    # st.markdown("<h1 style='text-align: center;'>UAV Sensor Detection Probability Calculator</h1>", unsafe_allow_html=True)
+    
     
     # Initialize session state for storing data across interactions
     if 'area_selected' not in st.session_state:
@@ -97,6 +100,10 @@ def main():
     # Initialize session state for sensor specifications
     if 'sensor_specifications' not in st.session_state:
         st.session_state.sensor_specifications = []
+    
+    # Initialize session state for UAV specifications (now multiple)
+    if 'uav_specifications_list' not in st.session_state:
+        st.session_state.uav_specifications_list = []
     
     # Initialize the location search session state
     if 'location_selected' not in st.session_state:
@@ -144,83 +151,60 @@ def main():
         # Skip the rest of the app until a location is selected
         return
     
-    # Once a location is selected, show a button to change location
-    st.sidebar.subheader("Current Location")
-    st.sidebar.info(f"Centered at: {st.session_state.map_center[0]:.4f}, {st.session_state.map_center[1]:.4f}")
-    
-    if st.sidebar.button("Change Location"):
-        st.session_state.location_selected = False
-        st.rerun()
-    
     # Sidebar for input parameters
     with st.sidebar:
         st.header("Configuration Parameters")
         
-        # Add Sensor Information section - MOVED TO TOP
-        st.subheader("Sensor Selection")
+        # Add Sensor Information section with toggle - MOVED TO TOP
+        sensor_selection_expanded = st.checkbox("Sensor Selection", value=False)
         
-        # Load sensor data from JSON file
-        sensor_data = load_sensor_data()
-        
-        # Create tabs for different sensor types
-        if sensor_data["sensors"]:
-            sensor_types = [sensor["sensor_type"] for sensor in sensor_data["sensors"]]
-            sensor_tabs = st.tabs(sensor_types)
+        if sensor_selection_expanded:
             
-            # Display each sensor type in its own tab
-            for i, tab in enumerate(sensor_tabs):
-                with tab:
-                    st.write(f"### {sensor_types[i]} Sensors")
-                    
-                    # Get parameters for this sensor type
-                    sensors_of_type = sensor_data["sensors"][i]["parameters"]
-                    
-                    # Create an expander for each sensor model
-                    for sensor in sensors_of_type:
-                        with st.expander(f"{sensor['model']} - {sensor['manufacturer']}"):
-                            # Display sensor details
-                            st.write(f"**Description:** {sensor['description']}")
-                            st.write(f"**Detection Range:** {sensor['detection_range']} meters")
-                            st.write(f"**Response Time:** {sensor['response_time']} seconds")
-                            st.write(f"**Price:** ${sensor['price_per_unit']:,}")
-                            
-                            # Display additional specifications in a more compact format
-                            if "sensor_specifications" in sensor:
-                                specs = sensor["sensor_specifications"]
-                                col1, col2 = st.columns(2)
+            # Load sensor data from JSON file
+            sensor_data = load_sensor_data()
+            
+            # Create tabs for different sensor types
+            if sensor_data["sensors"]:
+                sensor_types = [sensor["sensor_type"] for sensor in sensor_data["sensors"]]
+                sensor_tabs = st.tabs(sensor_types)
+                
+                # Display each sensor type in its own tab
+                for i, tab in enumerate(sensor_tabs):
+                    with tab:
+                        st.write(f"### {sensor_types[i]} Sensors")
+                        
+                        # Get parameters for this sensor type
+                        sensors_of_type = sensor_data["sensors"][i]["parameters"]
+                        
+                        # Create an expander for each sensor model
+                        for sensor in sensors_of_type:
+                            with st.expander(f"{sensor['model']} - {sensor['manufacturer']}"):
+                                # Display sensor details
+                                st.write(f"**Description:** {sensor['description']}")
+                                st.write(f"**Detection Range:** {sensor['detection_range']} km")  # Changed from meters
+                                st.write(f"**Response Time:** {sensor['response_time']} seconds")
+                                st.write(f"**Price:** ${sensor['price_per_unit']:,}")
                                 
-                                with col1:
-                                    st.write("**Specifications:**")
-                                    for key, value in list(specs.items())[:len(specs)//2]:
-                                        formatted_key = key.replace("_", " ").title()
-                                        st.write(f"- {formatted_key}: {value}")
-                                
-                                with col2:
-                                    st.write("&nbsp;")  # Empty header for alignment
-                                    for key, value in list(specs.items())[len(specs)//2:]:
-                                        formatted_key = key.replace("_", " ").title()
-                                        st.write(f"- {formatted_key}: {value}")
-                            
-                            # Button to add this sensor to selection
-                            if st.button("Add Sensor", key=f"add_{sensor['model']}"):
-                                new_sensor = {
-                                    "type": sensor_types[i],
-                                    "detection_range": sensor["detection_range"],
-                                    "response_time": sensor["response_time"],
-                                    "model": sensor["model"],
-                                    "manufacturer": sensor["manufacturer"],
-                                    "price_per_unit": sensor["price_per_unit"],
-                                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                }
-                                
-                                # Add to session state
-                                st.session_state.sensor_specifications.append(new_sensor)
-                                st.success(f"Added {sensor['model']} sensor!")
-                                st.rerun()  # Rerun to update the UI
-        else:
-            st.error("No sensor data found. Please check sensor-data.json file.")
+                                # Button to add this sensor to selection
+                                if st.button("Add Sensor", key=f"add_{sensor['model']}"):
+                                    new_sensor = {
+                                        "type": sensor_types[i],
+                                        "detection_range": sensor["detection_range"],
+                                        "response_time": sensor["response_time"],
+                                        "model": sensor["model"],
+                                        "manufacturer": sensor["manufacturer"],
+                                        "price_per_unit": sensor["price_per_unit"],
+                                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                    }
+                                    
+                                    # Add to session state
+                                    st.session_state.sensor_specifications.append(new_sensor)
+                                    st.success(f"Added {sensor['model']} sensor!")
+                                    st.rerun()  # Rerun to update the UI
+            else:
+                st.error("No sensor data found. Please check sensor-data.json file.")
         
-        # Display the list of added sensors
+        # Display the list of added sensors - ALWAYS VISIBLE
         if st.session_state.sensor_specifications:
             st.subheader("Selected Sensors")
             
@@ -228,7 +212,7 @@ def main():
             for i, sensor in enumerate(st.session_state.sensor_specifications):
                 with st.container():
                     st.markdown(f"**{i+1}. {sensor['type']}** - {sensor['model']}")
-                    st.markdown(f"Range: {sensor['detection_range']}m, Response: {sensor['response_time']}s")
+                    st.markdown(f"Range: {sensor['detection_range']}km, Response: {sensor['response_time']}s")  # Changed from m
                     st.markdown(f"Price: ${sensor['price_per_unit']:.2f}")  # Display the price
                     
                     # Button to remove this sensor
@@ -239,71 +223,102 @@ def main():
                 
                 st.markdown("---")
         
-        # Add UAV specifications - MOVED TO MIDDLE
-        st.subheader("UAV Specifications")
-        
-        # If UAV specifications exist in the JSON file, display as a selectbox
-        if "uav_specifications" in sensor_data and sensor_data["uav_specifications"]:
-            uav_types = [uav["uav_type"] for uav in sensor_data["uav_specifications"]]
-            selected_uav_type = st.selectbox("UAV Type", uav_types)
-            
-            # Find the selected UAV in the data
-            selected_uav = next((uav for uav in sensor_data["uav_specifications"] if uav["uav_type"] == selected_uav_type), None)
-            
-            if selected_uav:
-                # Display altitude range for the selected UAV
-                altitude_range = selected_uav["altitude_range"]
-                uav_altitude = st.slider("UAV Altitude (meters)", 
-                                         min_value=float(altitude_range[0]), 
-                                         max_value=float(altitude_range[1]),
-                                         value=float((altitude_range[0] + altitude_range[1]) / 2))
+        # Separate UAV specifications section with its own toggle
+        uav_selection_expanded = st.checkbox("UAV Specifications", value=False)
+
+        if uav_selection_expanded:
+            # Load sensor data from JSON file (for UAV specs)
+            sensor_data = load_sensor_data()
+
+            # If UAV specifications exist in the JSON file, display as a selectbox
+            if "uav_specifications" in sensor_data and sensor_data["uav_specifications"]:
+                uav_types = [uav["uav_type"] for uav in sensor_data["uav_specifications"]]
+                selected_uav_type = st.selectbox("UAV Type", uav_types)
                 
-                # Display speed range for the selected UAV
-                speed_range = selected_uav["speed_range"]
-                uav_speed = st.slider("UAV Speed (m/s)", 
-                                     min_value=float(speed_range[0]),
-                                     max_value=float(speed_range[1]),
-                                     value=float((speed_range[0] + speed_range[1]) / 2))
+                # Find the selected UAV in the data
+                selected_uav = next((uav for uav in sensor_data["uav_specifications"] if uav["uav_type"] == selected_uav_type), None)
                 
-                # Display additional UAV info
-                st.info(f"Endurance: {selected_uav['endurance']} minutes\nPayload Capacity: {selected_uav['payload_capacity']} kg")
-        else:
-            # Fallback to manual input if no UAV specs in JSON
-            uav_altitude = st.number_input("UAV Altitude (meters)", value=100.0, step=10.0)
-            uav_speed = st.number_input("UAV Speed (m/s)", value=10.0, step=1.0)
-        
-        # Option to download all input information as GeoJSON
-        if st.session_state.sensor_specifications:
-            st.subheader("Export All Input Data")
-            
-            # Create export data
-            export_data = export_all_data_to_geojson(
-                boundary_type=st.session_state.boundary_type,
-                boundary_points=st.session_state.boundary_points,
-                sw_corner=st.session_state.get('sw_corner'),
-                ne_corner=st.session_state.get('ne_corner'),
-                sensor_locations=st.session_state.potential_locations,
-                protected_areas=st.session_state.protected_areas,
-                sensor_specifications=st.session_state.sensor_specifications,
-                uav_specs={
-                    "altitude": uav_altitude,
-                    "speed": uav_speed
-                }
-            )
-            
-            # Convert to JSON string
-            export_json = json.dumps(export_data, indent=2)
-            
-            # Create a download button for the JSON
-            st.download_button(
-                label="Download as GeoJSON",
-                data=export_json,
-                file_name="uav_sensor_project_data.geojson",
-                mime="application/geo+json"
-            )
+                if selected_uav:
+                    # Display altitude range for the selected UAV
+                    altitude_range = selected_uav["altitude_range"]
+                    uav_altitude = st.slider("UAV Altitude (kilometers)", 
+                                            min_value=float(altitude_range[0]), 
+                                            max_value=float(altitude_range[1]),
+                                            value=float((altitude_range[0] + altitude_range[1]) / 2),
+                                            step=0.1,
+                                            format="%.1f")
+                    
+                    # Display speed range for the selected UAV
+                    speed_range = selected_uav["speed_range"]
+                    uav_speed = st.slider("UAV Speed (km/h)", 
+                                        min_value=float(speed_range[0]),
+                                        max_value=float(speed_range[1]),
+                                        value=float((speed_range[0] + speed_range[1]) / 2),
+                                        step=1.0,
+                                        format="%.0f")
+                    
+                    # Auto-generate UAV name based on type, altitude, and speed
+                    def generate_uav_name(uav_type, altitude, speed):
+                        """Generate UAV name in format: type_alt_value_speed_value"""
+                        clean_type = uav_type.lower().replace(' ', '_').replace('-', '_')
+                        
+                        # Format altitude - preserve decimal if it's not a whole number
+                        if altitude == int(altitude):
+                            alt_str = str(int(altitude))  
+                        else:
+                            alt_str = f"{altitude:.1f}".replace('.', '_')  
+                        
+                        speed_str = str(int(speed))
+                        
+                        return f"{clean_type}_alt_{alt_str}_speed_{speed_str}"
+                    
+                    # Generate the auto name
+                    auto_generated_name = generate_uav_name(selected_uav_type, uav_altitude, uav_speed)
+                    
+                    # Display the auto-generated name (read-only)
+                    st.text_input("Auto-generated UAV Name", 
+                                value=auto_generated_name, 
+                                disabled=True,
+                                help="Name is automatically generated based on UAV type, altitude, and speed")
+                    
+                    # Add button to save this UAV specification
+                    if st.button("Add UAV Configuration"):
+                        # Check if name already exists
+                        existing_names = [uav["id"] for uav in st.session_state.uav_specifications_list]
+                        if auto_generated_name in existing_names:
+                            st.error(f"A UAV configuration with the name '{auto_generated_name}' already exists. Please adjust altitude or speed values.")
+                        else:
+                            new_uav_spec = {
+                                "id": auto_generated_name,  # Use auto-generated name as ID
+                                "type": selected_uav_type,
+                                "altitude": uav_altitude,  # Now in km
+                                "speed": uav_speed,        # Now in km/h
+                                "altitude_range": altitude_range,
+                                "speed_range": speed_range,
+                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            }
+                            
+                            st.session_state.uav_specifications_list.append(new_uav_spec)
+                            st.success(f"Added '{auto_generated_name}': {selected_uav_type} at {uav_altitude}km altitude, {uav_speed}km/h speed")
+                            st.rerun()
+            else:
+                st.error("No UAV specifications found. Please check sensor-data.json file.")
+
+        # Display current UAV configurations - ALWAYS VISIBLE
+        if st.session_state.uav_specifications_list:
+            st.subheader("Added UAV Configurations")
+            for i, uav_spec in enumerate(st.session_state.uav_specifications_list):
+                with st.container():
+                    st.markdown(f"**{uav_spec['id']}**: {uav_spec['type']}")
+                    st.markdown(f"Altitude: {uav_spec['altitude']}km, Speed: {uav_spec['speed']}km/h")  # Changed units
+                    
+                    # Button to remove this UAV configuration
+                    if st.button("Remove", key=f"remove_uav_{i}"):
+                        st.session_state.uav_specifications_list.pop(i)
+                        st.success("UAV configuration removed!")
+                        st.rerun()
+                st.markdown("---")
     
-    # Create tabs for different sections of the application
-    # CHANGE: Reordered the tabs to match the new workflow
     # Create tabs for different sections of the application
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Map & Selection", "Coverage Areas", "Possible Sensor Placement", "Preprocess Detection Probability", "Prediction", "Optimization"])
     
@@ -321,14 +336,7 @@ def main():
         detection_probability_tab()
 
     with tab5:
-        st.header("Prediction")
-        st.info("This feature is coming in the next implementation step.")
-        
-        # Placeholder for prediction calculations
-        if st.session_state.area_selected and st.session_state.potential_locations:
-            st.success("Area and sensors have been defined. Prediction functionality will be implemented here.")
-        else:
-            st.warning("Please define an area of interest and place sensors before making predictions.")
+        prediction_tab()
 
     with tab6:
         st.header("Optimization")
@@ -348,116 +356,6 @@ def main():
             """)
         else:
             st.warning("Please define an area of interest and place sensors before running optimization.")
-
-def export_all_data_to_geojson(boundary_type, boundary_points, sw_corner, ne_corner, 
-                              sensor_locations, protected_areas, sensor_specifications,
-                              uav_specs):
-    """
-    Export all user input data to a comprehensive GeoJSON structure
-    """
-    # Initialize the GeoJSON structure with reordered metadata
-    geojson_data = {
-        "type": "Input Data Collection",
-        "features": [],
-        "metadata": {
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "sensor_specifications": sensor_specifications,  # First
-            "uav_specifications": uav_specs                 # Second
-        }
-    }
-    
-    # Add the boundary area
-    if boundary_type == "rectangle" and sw_corner and ne_corner:
-        # Create a rectangle feature
-        rectangle_coords = [
-            [sw_corner[1], sw_corner[0]],  # SW corner as [lng, lat]
-            [ne_corner[1], sw_corner[0]],  # SE corner
-            [ne_corner[1], ne_corner[0]],  # NE corner
-            [sw_corner[1], ne_corner[0]],  # NW corner
-            [sw_corner[1], sw_corner[0]]   # Back to SW to close the polygon
-        ]
-        
-        boundary_feature = {
-            "type": "Feature",
-            "properties": {
-                "featureType": "boundary",
-                "boundaryType": "rectangle"
-            },
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [rectangle_coords]
-            }
-        }
-        geojson_data["features"].append(boundary_feature)
-    
-    elif boundary_type == "polygon" and boundary_points:
-        # Convert polygon points from [lat, lng] to [lng, lat] for GeoJSON
-        polygon_coords = [[point[1], point[0]] for point in boundary_points]
-        
-        # Ensure the polygon is closed
-        if polygon_coords[0] != polygon_coords[-1]:
-            polygon_coords.append(polygon_coords[0])
-        
-        boundary_feature = {
-            "type": "Feature",
-            "properties": {
-                "featureType": "boundary",
-                "boundaryType": "polygon"
-            },
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [polygon_coords]
-            }
-        }
-        geojson_data["features"].append(boundary_feature)
-    
-    # Add sensor locations
-    for i, location in enumerate(sensor_locations):
-        # Find matching sensor specification if available
-        sensor_spec = None
-        if i < len(sensor_specifications):
-            sensor_spec = sensor_specifications[i]
-        
-        sensor_feature = {
-            "type": "Feature",
-            "properties": {
-                "featureType": "sensor",
-                "id": i + 1,
-                "timestamp": location.get('timestamp', datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                "specifications": sensor_spec
-            },
-            "geometry": {
-                "type": "Point",
-                "coordinates": [location['lng'], location['lat']]
-            }
-        }
-        geojson_data["features"].append(sensor_feature)
-    
-    # Add protected areas
-    for i, area in enumerate(protected_areas):
-        # Convert points from [lat, lng] to [lng, lat] for GeoJSON
-        area_coords = [[point[1], point[0]] for point in area['points']]
-        
-        # Ensure the polygon is closed
-        if area_coords[0] != area_coords[-1]:
-            area_coords.append(area_coords[0])
-        
-        area_feature = {
-            "type": "Feature",
-            "properties": {
-                "featureType": "protectedArea",
-                "id": i + 1,
-                "name": area.get('name', f"Protected Area {i+1}"),
-                "timestamp": area.get('timestamp', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-            },
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [area_coords]
-            }
-        }
-        geojson_data["features"].append(area_feature)
-    
-    return geojson_data
 
 if __name__ == "__main__":
     main()

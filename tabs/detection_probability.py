@@ -611,7 +611,7 @@ def detection_probability_tab():
     st.info(f"Found {len(st.session_state.uav_specifications_list)} UAV configuration(s) to analyze.")
     
     # Direct run button for detection probability calculation
-    run_button = st.button("Run Detection Probability Analysis & Generate JSON", type="primary")
+    run_button = st.button("Run Detection Probability", type="primary")
     
     if run_button or st.session_state.get('detection_prob_calculated', False):
         if run_button:

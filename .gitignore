@@ -1,1 +1,27 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+
+# Virtual environment
 venv/
+
+# Log files
+*.log
+
+# Output and intermediate data folders
+detection_outputs/
+tabs/
+
+# Data files (JSON inputs/outputs)
+*.json
+
+# Environment variables (future-proofing)
+.env
+
+# Documentation files not needed in codebase
+*.docx
+*.pdf
+
+# System files
+.DS_Store
+Thumbs.db

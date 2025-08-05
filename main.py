@@ -319,40 +319,32 @@ def main():
                         st.rerun()
                 st.markdown("---")
     
-    # Create tabs for different sections of the application
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Map & Selection", "Coverage Areas", "Possible Sensor Placement", "Preprocess Detection Probability", "Prediction", "Optimization"])
-    
-    # Now use the dedicated functions for each tab
+    tab1, tab2, tab3 = st.tabs(["Preprocess Data", "Prediction", "Optimization"])
+
     with tab1:
+        st.header("Preprocess Data")
         map_selection_tab()
-    
-    with tab2:
         protected_areas_tab()
-    
-    with tab3:
         sensor_tab()
-    
-    with tab4:
         detection_probability_tab()
 
-    with tab5:
+    with tab2:
+        st.header("Prediction")
         prediction_tab()
 
-    with tab6:
+    with tab3:
         st.header("Optimization")
         st.info("This feature is coming in the next implementation step.")
         
-        # Placeholder for optimization calculations
         if st.session_state.area_selected and st.session_state.potential_locations:
             st.success("Area and sensors have been defined. Optimization algorithm will be implemented here.")
             
-            # Add a simple framework for what will be implemented
             st.subheader("Planned Optimization Features:")
             st.markdown("""
-            - Sensor placement optimization based on coverage area
-            - Cost optimization for sensor deployment
-            - Detection probability optimization
-            - Multi-objective optimization considering all constraints
+            - Sensor placement optimization based on coverage area  
+            - Cost optimization for sensor deployment  
+            - Detection probability optimization  
+            - Multi-objective optimization considering all constraints  
             """)
         else:
             st.warning("Please define an area of interest and place sensors before running optimization.")

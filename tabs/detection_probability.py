@@ -256,8 +256,11 @@ def preprocess_detection_probability(grid_data, sensor_locations, sensor_specifi
 
 # FIXED: Updated create_combined_json_output function with improved sensor matching
 def create_combined_json_output(all_uav_results, sensor_locations, sensor_specifications, 
-                            uav_specifications_list, boundary_type, boundary_points, 
-                            sw_corner, ne_corner, grid_size_degrees):
+                                uav_specifications_list, boundary_type, boundary_points, 
+                                sw_corner, ne_corner, grid_size_degrees, protected_areas=None):
+    if protected_areas is None:
+        protected_areas = []
+
     """
     Create combined output with improved sensor matching logic and exact sensor names
     FIXED: Properly matches sensors using unique keys to prevent data loss
@@ -378,6 +381,48 @@ def create_combined_json_output(all_uav_results, sensor_locations, sensor_specif
             area_of_interest_sw_corners.append([cell_sw_corner[1], cell_sw_corner[0]])
 
     main_json["area_of_interest"] = area_of_interest_sw_corners
+
+    # NEW: AOI (big rectangle) four-corner coordinates
+    # Stored as lat, lng to match session_state corners
+    aoi_square = {}
+
+    if boundary_type == "rectangle" and sw_corner and ne_corner:
+        lat_sw, lng_sw = sw_corner
+        lat_ne, lng_ne = ne_corner
+        aoi_square = {
+            "sw": [lat_sw, lng_sw],
+            "se": [lat_sw, lng_ne],
+            "ne": [lat_ne, lng_ne],
+            "nw": [lat_ne, lng_sw]
+        }
+
+    elif boundary_type == "polygon" and boundary_points:
+        # Use the polygon’s bounding box as the AOI square
+        lats = [p[0] for p in boundary_points]
+        lngs = [p[1] for p in boundary_points]
+        lat_sw, lng_sw = min(lats), min(lngs)
+        lat_ne, lng_ne = max(lats), max(lngs)
+        aoi_square = {
+            "sw": [lat_sw, lng_sw],
+            "se": [lat_sw, lng_ne],
+            "ne": [lat_ne, lng_ne],
+            "nw": [lat_ne, lng_sw]
+        }
+
+    # Append at the end of the main JSON
+    main_json["square_coordinates"] = aoi_square
+
+    # Add raw coordinates of protected areas to the main JSON
+    protected_areas = st.session_state.get('protected_areas', [])
+    main_json["protected_areas_coordinates"] = {}
+
+    for area in protected_areas:
+        area_name = area["name"]
+        # area["points"] is a list of [lat, lng]
+        pts = [{"lat": lat, "long": lng} for lat, lng in area["points"]]
+        main_json["protected_areas_coordinates"][area_name] = pts
+
+
     
     # Extract unique sensor types
     sensor_types = list(set(spec["type"].lower() for spec in sensor_specifications))
@@ -385,9 +430,6 @@ def create_combined_json_output(all_uav_results, sensor_locations, sensor_specif
     
     # print(f"DEBUG: Sensor types: {sensor_types}")
     
-    # Process coverage areas (protected areas)
-    import streamlit as st
-    protected_areas = st.session_state.get('protected_areas', [])
     
     if protected_areas:
         from map_utils import is_point_in_polygon
@@ -725,8 +767,10 @@ def detection_probability_tab():
                         st.session_state.boundary_points,
                         st.session_state.sw_corner,
                         st.session_state.ne_corner,
-                        grid_size_degrees  # Changed: now passing degrees instead of km
+                        grid_size_degrees,
+                        protected_areas=st.session_state.get('protected_areas', [])
                     )
+
                     
                     # Store in session state
                     st.session_state.main_json = main_json
@@ -767,9 +811,11 @@ def detection_probability_tab():
 
                     # IMPORTANT: Save the zip file path to session state
                     st.session_state.detection_zip_path = zip_path
+                    st.session_state.detection_locked = True
                 else:
                     st.error("Please enable and configure the grid in the Map & Selection tab first.")
                     return
+
         
         # Display results if they exist
         if st.session_state.get('detection_prob_calculated', False):

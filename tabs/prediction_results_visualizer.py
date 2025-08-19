@@ -614,7 +614,6 @@ def prediction_results_tab():
                     selected_option, 
                     classification_type
                 )
-                
                 folium_static(prediction_map, width=800, height=600)
             else:
                 st.warning("Please select a valid option to display the map.")

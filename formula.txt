@@ -1,0 +1,20 @@
+base_prob = math.exp(-(distance / max_range)²)
+1. Radar Sensors
+1.	Altitude Factor: altitude_factor = 1.0 - 0.1 * (uav_altitude / 1000) 
+2.	Speed Factor: speed_factor = 0.9 + 0.1 * min(uav_speed / 20, 1.0) 
+3.	RCS Factor: rcs_factor = 0.95 
+Final radar probability: final_prob = base_prob * altitude_factor * speed_factor * rcs_factor
+2. RF (Radio Frequency) Sensors
+1.	Signal Factor: signal_factor = 1.0 - 0.3 * (distance / max_range)^1.5 
+2.	Speed Factor: speed_factor = 1.0 
+3.	Altitude Factor: altitude_factor = 1.0 - 0.05 * (uav_altitude / 500) 
+Final RF probability: final_prob = base_prob * signal_factor * speed_factor * altitude_factor
+3. LiDAR Sensors
+1.	Range Factor: range_factor = 1.0 - 0.5 * (distance / max_range)^1.2 
+2.	Speed Factor: speed_factor = 1.0 - 0.2 * min(uav_speed / 30, 1.0) 
+3.	Altitude Factor: altitude_factor = 1.0 - 0.2 * (uav_altitude / 300) 
+Final LiDAR probability: final_prob = base_prob * range_factor * speed_factor * altitude_factor
+Randomness Addition
+After applying sensor-specific modifiers, a small randomness factor is added:
+randomness = max(0, min(1, np.random.normal(0, 0.05) + final_prob))
+

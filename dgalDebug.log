@@ -411,3 +411,123 @@ DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=No
 DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
 DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
 DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:urllib3.util.retry:Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+DEBUG:geopy:Nominatim.geocode: https://nominatim.openstreetmap.org/search?q=washington+DC&format=json&limit=1
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): nominatim.openstreetmap.org:443
+DEBUG:urllib3.connectionpool:https://nominatim.openstreetmap.org:443 "GET /search?q=washington+DC&format=json&limit=1 HTTP/1.1" 200 439
